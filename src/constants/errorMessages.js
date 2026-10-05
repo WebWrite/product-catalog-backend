@@ -5,6 +5,8 @@ export const ERROR_MESSAGES = Object.freeze({
   RESOURCE_NOT_FOUND: "The requested resource was not found.",
   VALIDATION_ERROR: "Request validation failed.",
   SERVER_PORT_IS_MISSING: "Server port is missing",
+  DB_URL_IS_MISSING: "Database url is missing in env file",
+  DATABASE_CONNECTION_ERROR: "Database connection error",
 
   // Authentication & Authorization
   UNAUTHORIZED: "Authentication required. Please provide a valid token.",
