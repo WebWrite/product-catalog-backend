@@ -1,7 +1,7 @@
 export const SUCCESS_MESSAGES = Object.freeze({
   // General
   OPERATION_SUCCESS: "Operation completed successfully.",
-
+  SERVER_IS_RUNNING: "Server is running",
   // Authentication & User
   USER_REGISTERED: "User registered successfully.",
   USER_LOGGED_IN: "Logged in successfully.",
@@ -22,5 +22,5 @@ export const SUCCESS_MESSAGES = Object.freeze({
   CATEGORY_UPDATED: "Category updated successfully.",
   CATEGORY_DELETED: "Category deleted successfully.",
   CATEGORIES_FETCHED: "Categories retrieved successfully.",
-  CATEGORY_FETCHED: "Category retrieved successfully.",
+  CATEGORY_FETCHED: "Category retrieved successfully."
 });

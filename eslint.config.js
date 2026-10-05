@@ -11,13 +11,13 @@ export default [
       sourceType: "module",
       globals: {
         ...globals.node,
-        ...globals.es2021,
-      },
+        ...globals.es2021
+      }
     },
     rules: {
       "no-multiple-empty-lines": ["error", { max: 1, maxEOF: 1, maxBOF: 1 }],
       "no-unused-vars": ["warn", { argsIgnorePattern: "^_" }],
-      "no-console": "off",
-    },
-  },
+      "no-console": "off"
+    }
+  }
 ];

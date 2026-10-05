@@ -1,9 +1,14 @@
 import "dotenv/config";
-import express from "express";
-const app = express();
-app.use("/", () => {
-  console.log("welcome");
-});
-app.listen(process.env.PORT, () => {
-  console.log(`server is running on port ${process.env.PORT}`);
-});
+import { app } from "./app.js";
+import { ERROR_MESSAGES } from "./constants/errorMessages.js";
+import { SUCCESS_MESSAGES } from "./constants/successMessages.js";
+const PORT = process.env.PORT;
+if (!PORT) {
+  console.log(ERROR_MESSAGES.SERVER_PORT_IS_MISSING);
+}
+const runServer = () => {
+  app.listen(PORT, () => {
+    console.log(`${SUCCESS_MESSAGES.SERVER_IS_RUNNING} on PORT :: ${PORT}`);
+  });
+};
+runServer();

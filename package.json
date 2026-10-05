@@ -24,6 +24,7 @@
   "homepage": "https://github.com/WebWrite/product-catalog-backend#readme",
   "dependencies": {
     "bcryptjs": "^3.0.3",
+    "cookie-parser": "^1.4.7",
     "cors": "^2.8.6",
     "dotenv": "^18.0.5",
     "express": "^5.2.1",
