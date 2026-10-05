@@ -16,4 +16,4 @@ export const ERROR_MESSAGES = Object.freeze({
   TOKEN_EXPIRED: "Token has expired. Please log in again.",
   TOKEN_INVALID: "Token is invalid or malformed.",
   USER_NOT_FOUND: "User does not exist."
-});
+})

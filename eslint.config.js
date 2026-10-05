@@ -1,6 +1,6 @@
-import js from "@eslint/js";
-import globals from "globals";
-import prettier from "eslint-plugin-prettier/recommended";
+import js from "@eslint/js"
+import globals from "globals"
+import prettier from "eslint-plugin-prettier/recommended"
 
 export default [
   js.configs.recommended,
@@ -15,9 +15,9 @@ export default [
       }
     },
     rules: {
-      "no-multiple-empty-lines": ["error", { max: 1, maxEOF: 1, maxBOF: 1 }],
+      "no-multiple-empty-lines": ["error", { max: 1, maxEOF: 0, maxBOF: 0 }],
       "no-unused-vars": ["warn", { argsIgnorePattern: "^_" }],
       "no-console": "off"
     }
   }
-];
+]

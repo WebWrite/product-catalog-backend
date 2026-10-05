@@ -24,4 +24,4 @@ export const SUCCESS_MESSAGES = Object.freeze({
   CATEGORY_DELETED: "Category deleted successfully.",
   CATEGORIES_FETCHED: "Categories retrieved successfully.",
   CATEGORY_FETCHED: "Category retrieved successfully."
-});
+})

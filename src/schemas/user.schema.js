@@ -1,5 +1,5 @@
-import mongoose from "mongoose";
-import { Schema, model } from "mongoose";
+import mongoose from "mongoose"
+import { Schema, model } from "mongoose"
 
 const userSchema = new Schema(
   {
@@ -9,12 +9,13 @@ const userSchema = new Schema(
     isVerified: { type: Boolean, default: false },
     refreshToken: { type: String, default: null },
     role: { type: String, enum: ["seller", "buyer"], default: "buyer" },
-    createdAt: { type: Date, default: Date.now }
+    createdAt: { type: Date, default: Date.now },
+    updatedAt: { type: Date, default: Date.now }
   },
   {
     timestamps: true
   }
-);
+)
 
-const User = model("User", userSchema);
-export default User;
+const User = model("User", userSchema)
+export default User
