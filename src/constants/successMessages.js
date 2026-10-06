@@ -10,6 +10,7 @@ export const SUCCESS_MESSAGES = Object.freeze({
   PASSWORD_RESET_SUCCESS: "Password has been reset successfully.",
   USER_PROFILE_FETCHED: "User profile retrieved successfully.",
   USER_PROFILE_UPDATED: "User profile updated successfully.",
+  SELLER_PROFILE_CREATED: "Seller profile created",
 
   // Product Catalog
   PRODUCT_CREATED: "Product created successfully.",
