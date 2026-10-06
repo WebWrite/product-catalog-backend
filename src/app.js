@@ -5,6 +5,7 @@ import { ERROR_MESSAGES } from "./constants/errorMessages.js"
 import { HTTP_STATUS } from "./constants/statusCodes.js"
 import errorHandler from "./middlewares/error.middleware.js"
 import userRoutes from "./Routes/user.routes.js"
+import authRoutes from "./Routes/auth.routes.js"
 export const app = express()
 const baseURL = "/api/v1"
 app.use(
@@ -18,6 +19,7 @@ app.use(express.json())
 app.use(express.urlencoded({ extended: true }))
 
 app.use(`${baseURL}/users`, userRoutes)
+app.use(`${baseURL}/auth`, authRoutes)
 //page not found
 app.use("/", (req, res, next) => {
   console.log(ERROR_MESSAGES.RESOURCE_NOT_FOUND)
