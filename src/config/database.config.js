@@ -5,6 +5,7 @@ const DB_URL = process.env.DATABASE_URL
 if (!DB_URL) {
   console.log(ERROR_MESSAGES.DB_URL_IS_MISSING)
 }
+
 export const connectDB = async () => {
   try {
     await mongoose.connect(DB_URL)
