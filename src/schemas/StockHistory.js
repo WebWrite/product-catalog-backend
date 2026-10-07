@@ -37,17 +37,11 @@ const stockHistorySchema = new mongoose.Schema(
 
   },
   {
-    timestamps: {
-      createdAt: true,
-      updatedAt: false,
-    },
+    timestamps:true
   }
 );
 
-stockHistorySchema.index({
-  productId: 1,
-  createdAt: -1,
-});
+stockHistorySchema.index({productId: 1});
 
 const StockHistory = mongoose.model("StockHistory", stockHistorySchema);
 

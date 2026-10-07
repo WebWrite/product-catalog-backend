@@ -12,7 +12,6 @@ const userSchema = new mongoose.Schema(
     email: {
       type: String,
       required: true,
-      unique: true,
       lowercase: true,
       trim: true,
       maxlength: 255,
@@ -24,7 +23,8 @@ const userSchema = new mongoose.Schema(
       select: false,
     },
     refreshToken: {
-      type: String, default: null
+      type: String,
+      default: null
     },
 
     role: {
