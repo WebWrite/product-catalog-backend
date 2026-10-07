@@ -1,10 +1,16 @@
 import express from "express"
 import cors from "cors"
 import cookieParser from "cookie-parser"
-import { ERROR_MESSAGES } from "./constants/errorMessages.js"
-import { HTTP_STATUS } from "./constants/statusCodes.js"
 import errorHandler from "./middlewares/error.middleware.js"
 import userRoutes from "./Routes/user.routes.js"
+import requestLogger from "./middlewares/logger.js"
+import notFound from "./middlewares/notFound.js"
+import  swaggerUi from 'swagger-ui-express'
+import swaggerJsdoc from 'swagger-jsdoc'
+import swaggerOptions from "./config/swagger.js"
+
+
+import authRoutes from "./Routes/auth.routes.js"
 export const app = express()
 const baseURL = "/api/v1"
 app.use(
@@ -13,17 +19,21 @@ app.use(
     credentials: true
   })
 )
+
 app.use(cookieParser())
 app.use(express.json())
+
+const swaggerDocs = swaggerJsdoc(swaggerOptions);
+app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerDocs));
+
+
 app.use(express.urlencoded({ extended: true }))
+app.use(requestLogger)
 
 app.use(`${baseURL}/users`, userRoutes)
-//page not found
-app.use("/", (req, res, next) => {
-  console.log(ERROR_MESSAGES.RESOURCE_NOT_FOUND)
-  return res.status(HTTP_STATUS.NOT_FOUND).json({
-    message: ERROR_MESSAGES.RESOURCE_NOT_FOUND
-  })
-})
-//centralized error handling;
+
+app.use(notFound)
+app.use(`${baseURL}/auth`, authRoutes)
+
 app.use(errorHandler)
+

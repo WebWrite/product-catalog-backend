@@ -15,6 +15,7 @@ class UserController {
   }
   static async registerSeller(req, res, next) {
     try {
+      
       await UserManager.createSellerProfile(req.body)
       return res.status(HTTP_STATUS.OK).json({
         message: SUCCESS_MESSAGES.SELLER_PROFILE_CREATED
