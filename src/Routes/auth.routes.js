@@ -15,4 +15,7 @@ router.post(
   authentication("refreshToken", process.env.REFRESH_TOKEN_SECRET_KEY),
   AuthController.refreshToken
 )
+router.post("/verify-email-otp", AuthController.verifyOtp)
+router.post("/verify-login-otp", AuthController.verifyLoginOtp)
+router.post("/send-login-otp", AuthController.sendLoginOtp)
 export default router

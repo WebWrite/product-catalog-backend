@@ -22,5 +22,8 @@ class UserRepository {
   static async updateRefreshToken(id, refreshToken) {
     await User.findOneAndUpdate({ id }, { refreshToken: refreshToken })
   }
+  static async updateVerifyStatus(email) {
+    await User.findOneAndUpdate({ email }, { isVerified: true })
+  }
 }
 export default UserRepository
