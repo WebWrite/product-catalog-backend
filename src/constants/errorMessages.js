@@ -10,6 +10,7 @@ export const ERROR_MESSAGES = Object.freeze({
 
   // Authentication & Authorization
   UNAUTHORIZED: "Authentication required. Please provide a valid token.",
+  VERIFY_EMAIL: "Verify your email to access resources",
   FORBIDDEN: "Access denied. You do not have sufficient permissions.",
   INVALID_CREDENTIALS: "Invalid email or password.",
   EMAIL_ALREADY_EXISTS: "A user with this email already exists.",
