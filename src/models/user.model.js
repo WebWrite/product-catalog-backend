@@ -8,7 +8,11 @@ const userSchema = new Schema(
     password: { type: String, required: true },
     isVerified: { type: Boolean, default: false },
     refreshToken: { type: String, default: null },
-    role: { type: String, enum: ["seller", "buyer"], default: "buyer" },
+    role: {
+      type: String,
+      enum: ["seller", "buyer", "admin"],
+      default: "buyer"
+    },
     createdAt: { type: Date, default: Date.now },
     updatedAt: { type: Date, default: Date.now }
   },
