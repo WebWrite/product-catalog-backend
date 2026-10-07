@@ -1,6 +1,24 @@
 import Joi from "joi";
 
+const emailSchema = Joi.string()
+    .trim()
+    .lowercase()
+    .email()
+    .required()
+    .messages({
+        "string.empty": "Email is required",
+        "string.email": "Please provide a valid email address",
+        "any.required": "Email is required"
+    })
 
+const otpSchema = Joi.string()
+    .pattern(/^\d{6}$/)
+    .required()
+    .messages({
+        "string.empty": "OTP is required",
+        "string.pattern.base": "OTP must be exactly 6 digits",
+        "any.required": "OTP is required"
+    })
 const passwordSchema = Joi.string()
     .min(8)
     .max(128)
@@ -63,6 +81,29 @@ export const loginSchema = Joi.object({
         .min(1)
         .max(128)
         .required()
+}).options({
+    abortEarly: false,
+    allowUnknown: false
+})
+
+export const verifyEmailOtpSchema = Joi.object({
+    email: emailSchema,
+    otp: otpSchema
+}).options({
+    abortEarly: false,
+    allowUnknown: false
+})
+
+export const sendLoginOtpSchema = Joi.object({
+    email: emailSchema
+}).options({
+    abortEarly: false,
+    allowUnknown: false
+})
+
+export const verifyLoginOtpSchema = Joi.object({
+    email: emailSchema,
+    otp: otpSchema
 }).options({
     abortEarly: false,
     allowUnknown: false

@@ -7,7 +7,7 @@ class UserController {
     try {
       await UserManager.registerUser(req.body)
       return res.status(HTTP_STATUS.OK).json({
-        message: SUCCESS_MESSAGES.USER_REGISTERED
+        message: SUCCESS_MESSAGES.OTP_SEND
       })
     } catch (err) {
       next(err)
