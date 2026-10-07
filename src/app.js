@@ -10,7 +10,7 @@ import swaggerJsdoc from 'swagger-jsdoc'
 import swaggerOptions from "./config/swagger.js"
 
 
-
+import authRoutes from "./Routes/auth.routes.js"
 export const app = express()
 const baseURL = "/api/v1"
 app.use(
@@ -33,5 +33,7 @@ app.use(requestLogger)
 app.use(`${baseURL}/users`, userRoutes)
 
 app.use(notFound)
+app.use(`${baseURL}/auth`, authRoutes)
+
 app.use(errorHandler)
 

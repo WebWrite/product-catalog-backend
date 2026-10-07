@@ -5,7 +5,7 @@ const notFound = (req, res, next) => {
     next(
         new AppError(
             `${ERROR_MESSAGES.RESOURCE_NOT_FOUND} : ${req.method} ${req.originalUrl}`,
-            404
+            
         )
     );
 };

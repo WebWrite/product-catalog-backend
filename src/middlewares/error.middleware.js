@@ -1,4 +1,5 @@
 import logger from "../config/logger.js";
+import { ERROR_MESSAGES } from "../constants/errorMessages.js";
 
 const errorHandler = (err, req, res, next) => {
     logger.error({
@@ -15,7 +16,7 @@ const errorHandler = (err, req, res, next) => {
         success: false,
         message:
             statusCode === 500
-                ? "Internal server error"
+                ? `${ERROR_MESSAGES.INTERNAL_SERVER_ERROR}`
                 : err.message,
     });
 };

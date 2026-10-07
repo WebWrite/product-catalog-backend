@@ -10,5 +10,11 @@ class UserRepository {
   static async createSellerProfile(profileData) {
     return await SellerProfile.create(profileData)
   }
+  static async invalidateRefreshToken(refreshToken) {
+    await User.findOneAndUpdate({ refreshToken }, { refreshToken: null })
+  }
+  static async updateRefreshToken(id, refreshToken) {
+    await User.findOneAndUpdate({ id }, { refreshToken: refreshToken })
+  }
 }
 export default UserRepository

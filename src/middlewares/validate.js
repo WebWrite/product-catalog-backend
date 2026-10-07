@@ -1,4 +1,5 @@
-
+import { ERROR_MESSAGES } from '../constants/errorMessages.js';
+import { HTTP_STATUS } from '../constants/statusCodes.js';
 const validate = (schema) => {
     return (req, res, next) => {
         const { error, value } = schema.validate(req.body, {
@@ -7,9 +8,8 @@ const validate = (schema) => {
         });
 
         if (error) {
-            return res.status(400).json({
-                success: false,
-                message: "Validation failed",
+            return res.status(HTTP_STATUS.BAD_REQUEST).json({
+                message: `${ERROR_MESSAGES.VALIDATION_FAILED}`,
                 errors: error.details.map((detail) => detail.message),
             });
         }

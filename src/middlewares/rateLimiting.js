@@ -1,12 +1,10 @@
 import rateLimit from 'express-rate-limit'
+import { ERROR_MESSAGES } from '../constants/errorMessages.js';
 
 const authLimiter = rateLimit({
     windowMs: 1 * 60 * 1000,
     max: 3,
-    message: {
-        success: false,
-        message:
-            "Too many authentication attempts. Please try again later.",
-    },
+    message: `${ERROR_MESSAGES.AUTH_LIMIT}`
+    
 });
 export default authLimiter;
