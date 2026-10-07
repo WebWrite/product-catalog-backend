@@ -7,6 +7,7 @@ export const ERROR_MESSAGES = Object.freeze({
   SERVER_PORT_IS_MISSING: "Server port is missing",
   DB_URL_IS_MISSING: "Database url is missing in env file",
   DATABASE_CONNECTION_ERROR: "Database connection error",
+  REDIS_CONNECTION_FAILED: "Redis connection error",
 
   // Authentication & Authorization
   UNAUTHORIZED: "Authentication required. Please provide a valid token.",
@@ -16,5 +17,7 @@ export const ERROR_MESSAGES = Object.freeze({
   EMAIL_ALREADY_EXISTS: "A user with this email already exists.",
   TOKEN_EXPIRED: "Token has expired. Please log in again.",
   TOKEN_INVALID: "Token is invalid or malformed.",
-  USER_NOT_FOUND: "User does not exist."
+  USER_NOT_FOUND: "User does not exist.",
+  OTP_EXPIRED: "Otp expired or invalid",
+  OTP_INVALID: "Invalid Otp"
 })
