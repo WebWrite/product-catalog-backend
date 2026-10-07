@@ -6,7 +6,7 @@ class UserManager {
   static async registerUser(data) {
     await UserUtil.findUserWitEmail(data.email)
     const hashedPassword = await bcrypt.hash(data.password, 10)
-    data.password = hashedPassword
+    data.password = hashedPassword 
     const user = await UserRepository.createUser(data)
     return user
   }

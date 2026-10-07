@@ -1,4 +1,4 @@
-import User from "../schemas/user.schema.js"
+import User from "../schemas/User.js"
 import SellerProfile from "../schemas/seller.profile.schema.js"
 class UserRepository {
   static async findUserWithEmail(email) {
