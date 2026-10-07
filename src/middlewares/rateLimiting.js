@@ -7,4 +7,5 @@ const authLimiter = rateLimit({
     message: `${ERROR_MESSAGES.AUTH_LIMIT}`
     
 });
+
 export default authLimiter;
