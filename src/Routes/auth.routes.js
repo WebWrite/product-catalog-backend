@@ -1,7 +1,9 @@
 import { Router } from "express"
 import authentication from "../middlewares/authentication.middleware.js"
-import AuthController from "../Controllers/AuthController.js"
+import AuthController from "../controllers/AuthController.js"
 const router = Router()
+router.post("/register-buyer", AuthController.registerUser)
+router.post("/register-seller", AuthController.registerSeller)
 router.post("/login", AuthController.Login)
 router.post(
   "/logout",
