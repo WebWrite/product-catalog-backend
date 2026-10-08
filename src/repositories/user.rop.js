@@ -5,9 +5,7 @@ class UserRepository {
   static async findUserWithEmail(email) {
     return await User.findOne({ email })
   }
-  static async createUser(data) {
-    return await User.create(data)
-  }
+
   static async createUser(data, session) {
     const user = await User.create([data], session ? { session } : undefined)
     return Array.isArray(user) ? user[0] : user
@@ -27,6 +25,9 @@ class UserRepository {
   }
   static async updateVerifyStatus(email) {
     await User.findOneAndUpdate({ email }, { isVerified: true })
+  }
+  static async finUserbyId(id) {
+    return await User.findOne({ _id: id })
   }
 }
 export default UserRepository

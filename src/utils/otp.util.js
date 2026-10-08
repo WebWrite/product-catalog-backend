@@ -2,6 +2,8 @@ import { randomInt } from "crypto"
 import redis from "../config/redis.config.js"
 import transport from "../config/mailer.config.js"
 import { ERROR_MESSAGES } from "../constants/errorMessages.js"
+import AppError from "./AppError.js"
+import { HTTP_STATUS } from "../constants/statusCodes.js"
 
 class OtpUtils {
   static generateOtp() {
@@ -10,6 +12,7 @@ class OtpUtils {
   static async sendOtp(name, email, key) {
     const otp = this.generateOtp()
     const redisKey = `otp:${key}:${email}`
+    await redis.del(redisKey)
     await redis.set(redisKey, otp, {
       EX: 300
     })
@@ -36,11 +39,11 @@ class OtpUtils {
     const redisKey = `otp:${key}:${email}`
     const storeOtp = await redis.get(redisKey)
     if (!storeOtp) {
-      throw new Error(ERROR_MESSAGES.OTP_EXPIRED)
+      throw new AppError(ERROR_MESSAGES.OTP_EXPIRED, HTTP_STATUS.BAD_REQUEST)
     }
 
     if (storeOtp != otp) {
-      throw new Error(ERROR_MESSAGES.OTP_INVALID)
+      throw new AppError(ERROR_MESSAGES.OTP_INVALID, HTTP_STATUS.BAD_REQUEST)
     }
     await redis.del(redisKey)
   }

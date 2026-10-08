@@ -4,30 +4,28 @@ import bcrypt from "bcryptjs"
 import Token from "../helpers/token.js"
 import mongoose from "mongoose"
 import OtpUtils from "../utils/otp.util.js"
-import redis from "../config/redis.config.js"
 import { ERROR_MESSAGES } from "../constants/errorMessages.js"
-import { SUCCESS_MESSAGES } from "../constants/successMessages.js"
+import AppError from "../utils/AppError.js"
 import { HTTP_STATUS } from "../constants/statusCodes.js"
 class UserManager {
   static async registerUser(data, session) {
-    await UserUtil.findUserWitEmail(data.email)
+    let isUser = await UserUtil.findUserWitEmail(data.email)
+    if (isUser) {
+      throw new AppError(
+        ERROR_MESSAGES.EMAIL_ALREADY_EXISTS,
+        HTTP_STATUS.CONFLICT
+      )
+    }
     const hashedPassword = await bcrypt.hash(data.password, 10)
-    data.password = hashedPassword 
+    data.password = hashedPassword
     const user = await UserRepository.createUser(data, session)
     await OtpUtils.sendOtp(data.name, data.email, "signup")
     return user
   }
 
   static async createSellerProfile(data) {
-    const { name, email, password, role, storeName, storeType } = data
-    const user = await this.registerUser({
-      name,
-      email,
-      password,
-      role
-    })
+    const { name, email, password, storeName, storeType } = data
 
-   
     const session = await mongoose.startSession()
     try {
       await session.withTransaction(async () => {
@@ -36,7 +34,7 @@ class UserManager {
             name,
             email,
             password,
-            role
+            role: "seller"
           },
           session
         )
@@ -86,10 +84,10 @@ class UserManager {
   static async sendLoginOtp(data) {
     const user = await UserUtil.findUserWitEmail(data.email)
     if (!user) {
-      throw new Error(ERROR_MESSAGES.USER_NOT_FOUND)
+      throw new AppError(ERROR_MESSAGES.USER_NOT_FOUND, HTTP_STATUS.NOT_FOUND)
     }
     if (!user.isVerified) {
-      throw new Error(ERROR_MESSAGES.VERIFY_EMAIL)
+      throw new AppError(ERROR_MESSAGES.VERIFY_EMAIL, HTTP_STATUS.BAD_REQUEST)
     }
     OtpUtils.sendOtp(user.name, user.email, "signin")
   }
@@ -105,6 +103,26 @@ class UserManager {
       user,
       accessToken,
       refreshToken
+    }
+  }
+
+  static async resendEmailOtp(data) {
+    let user = await UserUtil.findUserWitEmail(data.email)
+    if (!user) {
+      throw new AppError(ERROR_MESSAGES.USER_NOT_FOUND, HTTP_STATUS.NOT_FOUND)
+    }
+    await OtpUtils.sendOtp(user.name, data.email, "signup")
+  }
+
+  static async findUserById(id) {
+    let user = await UserRepository.finUserbyId(id)
+    console.log(user)
+    return {
+      name: user.name,
+      email: user.email,
+      role: user.role,
+      isVerified: user.isVerified,
+      status: user.status
     }
   }
 }

@@ -9,10 +9,10 @@ if (!PORT) {
   console.log(ERROR_MESSAGES.SERVER_PORT_IS_MISSING)
 }
 const runServer = async () => {
+  await connectDB()
+  connectRedis()
   app.listen(PORT, () => {
     console.log(`${SUCCESS_MESSAGES.SERVER_IS_RUNNING} on PORT :: ${PORT}`)
   })
-  await connectDB()
-  connectRedis()
 }
 runServer()
