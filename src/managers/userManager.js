@@ -12,14 +12,22 @@ class UserManager {
   static async registerUser(data, session) {
     await UserUtil.findUserWitEmail(data.email)
     const hashedPassword = await bcrypt.hash(data.password, 10)
-    data.password = hashedPassword
+    data.password = hashedPassword 
     const user = await UserRepository.createUser(data, session)
     await OtpUtils.sendOtp(data.name, data.email, "signup")
     return user
   }
+
   static async createSellerProfile(data) {
     const { name, email, password, role, storeName, storeType } = data
-    console.log("request data :: ", data)
+    const user = await this.registerUser({
+      name,
+      email,
+      password,
+      role
+    })
+
+   
     const session = await mongoose.startSession()
     try {
       await session.withTransaction(async () => {
@@ -100,4 +108,5 @@ class UserManager {
     }
   }
 }
+
 export default UserManager

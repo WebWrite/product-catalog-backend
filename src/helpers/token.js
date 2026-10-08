@@ -19,4 +19,5 @@ class Token {
     return token
   }
 }
+
 export default Token

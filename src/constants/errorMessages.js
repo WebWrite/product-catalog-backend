@@ -18,6 +18,11 @@ export const ERROR_MESSAGES = Object.freeze({
   TOKEN_EXPIRED: "Token has expired. Please log in again.",
   TOKEN_INVALID: "Token is invalid or malformed.",
   USER_NOT_FOUND: "User does not exist.",
+  INVALID_OBJECT_ID: "Object Id is invalid",
+  AUTH_LIMIT: "Too many authentication attempts. Please try again later.",
+  VALIDATION_FAILED: "validation failed",
+
+
   OTP_EXPIRED: "Otp expired or invalid",
   OTP_INVALID: "Invalid Otp"
 })

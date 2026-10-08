@@ -1,10 +1,13 @@
-import User from "../models/user.model.js"
+import User from "../models/User.js"
 import SellerProfile from "../models/seller.profile.model.js"
+
 class UserRepository {
   static async findUserWithEmail(email) {
     return await User.findOne({ email })
   }
-
+  static async createUser(data) {
+    return await User.create(data)
+  }
   static async createUser(data, session) {
     const user = await User.create([data], session ? { session } : undefined)
     return Array.isArray(user) ? user[0] : user
