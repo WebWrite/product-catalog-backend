@@ -6,7 +6,6 @@ import authentication from "../middlewares/authentication.middleware.js"
 const router = Router()
 router.get(
   "/me",
-  authLimiter,
   authentication("accessToken", process.env.ACCESS_TOKEN_SECRET_KEY),
   UserController.getCurrentUser
 )

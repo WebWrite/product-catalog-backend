@@ -116,7 +116,6 @@ class UserManager {
 
   static async findUserById(id) {
     let user = await UserRepository.finUserbyId(id)
-    console.log(user)
     return {
       name: user.name,
       email: user.email,
