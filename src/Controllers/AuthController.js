@@ -4,6 +4,26 @@ import UserManager from "../managers/userManager.js"
 import AuthCookies from "../helpers/cookieOptions.js"
 
 class AuthController {
+  static async registerUser(req, res, next) {
+    try {
+      await UserManager.registerUser(req.body)
+      return res.status(HTTP_STATUS.OK).json({
+        message: SUCCESS_MESSAGES.USER_REGISTERED
+      })
+    } catch (err) {
+      next(err)
+    }
+  }
+  static async registerSeller(req, res, next) {
+    try {
+      await UserManager.createSellerProfile(req.body)
+      return res.status(HTTP_STATUS.OK).json({
+        message: SUCCESS_MESSAGES.SELLER_PROFILE_CREATED
+      })
+    } catch (err) {
+      next(err)
+    }
+  }
   static async Login(req, res, next) {
     try {
       const result = await UserManager.Login(req.body)

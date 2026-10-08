@@ -24,5 +24,7 @@ class UserController {
       next(err)
     }
   }
+  //will use later
 }
+
 export default UserController

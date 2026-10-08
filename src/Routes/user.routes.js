@@ -84,3 +84,7 @@ router.post("/", validate(signupSchema), authLimiter, UserController.registerUse
 router.post("/register-seller", validate(sellerSignUpSchema), authLimiter, UserController.registerSeller)
 
 export default router
+// import { Router } from "express"
+// import UserController from "../Controllers/UserController.js"
+// const router = Router()
+// export default router
