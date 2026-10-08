@@ -1,5 +1,5 @@
-import User from "../schemas/User.js"
-import SellerProfile from "../schemas/seller.profile.schema.js"
+import User from "../models/User.js"
+import SellerProfile from "../models/seller.profile.model.js"
 
 class UserRepository {
   static async findUserWithEmail(email) {

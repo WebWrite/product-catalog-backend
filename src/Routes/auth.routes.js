@@ -206,8 +206,7 @@ router.post("/verify-login-otp", validate(sendLoginOtpSchema), AuthController.ve
  * /api/v1/auth/send-login-otp:
  *   post:
  *     summary: Send login OTP
- *     tags:
- *       - Authentication
+ 
  *     requestBody:
  *       required: true
  *       content:
