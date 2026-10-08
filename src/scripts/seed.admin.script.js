@@ -8,7 +8,7 @@ const seedAdmin = async () => {
     await connectDB()
     let admin = await UserRepository.findUserWithEmail(process.env.ADMIN_EMAIL)
     if (admin) {
-      console.log("admin already pressent")
+      console.log("admin already present")
       return
     }
     const hashedPassword = await bcrypt.hash(process.env.ADMIN_PASSWORD, 10)

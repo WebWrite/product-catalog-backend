@@ -7,13 +7,13 @@ class AuthController {
   static async registerUser(req, res) {
     await UserManager.registerUser(req.body)
     return res.status(HTTP_STATUS.OK).json({
-      message: SUCCESS_MESSAGES.USER_REGISTERED
+      message: SUCCESS_MESSAGES.OTP_SEND
     })
   }
   static async registerSeller(req, res) {
     await UserManager.createSellerProfile(req.body)
     return res.status(HTTP_STATUS.OK).json({
-      message: SUCCESS_MESSAGES.SELLER_PROFILE_CREATED
+      message: SUCCESS_MESSAGES.OTP_SEND
     })
   }
   static async Login(req, res) {

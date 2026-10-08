@@ -348,7 +348,7 @@ router.post(
   "/register-customer",
   validate(signupSchema),
   authLimiter,
-  asyncHandler(UserController.registerUser)
+  asyncHandler(AuthController.registerUser)
 )
 /**
  * @swagger
