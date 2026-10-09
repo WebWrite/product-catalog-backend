@@ -19,7 +19,10 @@ class UserUtil {
 
     const isMatch = await bcrypt.compare(data.password, user.password)
     if (!isMatch) {
-      console.log("email or password is incorrect")
+      throw new AppError(
+        ERROR_MESSAGES.INVALID_CREDENTIALS,
+        HTTP_STATUS.UNAUTHORIZED
+      )
     }
     if (!user.isVerified) {
       throw new AppError(ERROR_MESSAGES.VERIFY_EMAIL, HTTP_STATUS.FORBIDDEN)
