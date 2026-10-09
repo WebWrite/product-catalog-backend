@@ -17,7 +17,7 @@ class OtpUtils {
       EX: 300
     })
     await transport.sendMail({
-      from: process.env.SMTP_USER,
+      from: process.env.MAIL_FROM,
       to: email,
       subject: "Your verification OTP",
 
