@@ -34,6 +34,7 @@ class AuthController {
       message: SUCCESS_MESSAGES.USER_LOGGED_OUT
     })
   }
+  
   static async refreshToken(req, res, next) {
     const { accessToken, refreshToken } = await UserManager.updateRefreshToken(
       req.user

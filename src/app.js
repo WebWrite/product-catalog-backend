@@ -10,6 +10,7 @@ import swaggerOptions from "./config/swagger.js"
 
 import authRoutes from "./Routes/auth.routes.js"
 import userRoutes from "./Routes/user.routes.js"
+import sellerRoutes from "./Routes/product.route.js"
 
 //import userRoutes from "./Routes/user.routes.js"
 export const app = express()
@@ -33,6 +34,7 @@ app.use(express.urlencoded({ extended: true }))
 app.use(requestLogger)
 app.use(`${baseURL}/auth`, authRoutes)
 app.use(`${baseURL}/user`, userRoutes)
+app.use(`${baseURL}/seller`, sellerRoutes)
 
 app.use(notFound)
 

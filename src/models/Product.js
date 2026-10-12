@@ -8,9 +8,9 @@ const productSchema = new mongoose.Schema(
       required: true,
     },
 
-    categoryId: {
-      type: mongoose.Schema.Types.ObjectId,
-      ref: "Category",
+    category: {
+      type: String,
+      enum: ["Clothing", "Electronics", "Beauty", "Furniture", "Sports", "Toys", "Food",],
       required: true,
     },
 
@@ -28,9 +28,15 @@ const productSchema = new mongoose.Schema(
       maxlength: 5000,
     },
 
-    images: {
-      type: [String],
-      default: [],
+    image: {
+      url: {
+        type: String,
+        required: true,
+      },
+      publicId: {
+        type: String,
+        required: true,
+      },
     },
 
     price: {
@@ -38,7 +44,7 @@ const productSchema = new mongoose.Schema(
       required: true,
       min: 0,
     },
-    
+
     sizes: {
       type: [String],
       default: [],
@@ -59,7 +65,7 @@ const productSchema = new mongoose.Schema(
     },
   },
   {
-    timestamps : true,
+    timestamps: true,
   }
 );
 

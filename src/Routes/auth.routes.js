@@ -397,7 +397,7 @@ router.post(
   "/register-seller",
   validate(sellerSignUpSchema),
   authLimiter,
-  asyncHandler(UserController.registerSeller)
+  asyncHandler(AuthController.registerSeller)
 )
 
 export default router

@@ -23,5 +23,7 @@ export const ERROR_MESSAGES = Object.freeze({
   VALIDATION_FAILED: "validation failed",
 
   OTP_EXPIRED: "Otp expired or invalid",
-  OTP_INVALID: "Invalid Otp"
+  OTP_INVALID: "Invalid Otp",
+  PRODUCT_NOT_FOUND: "Product not found.",
+PRODUCT_OWNERSHIP_REQUIRED: "You are not authorized to modify this product.",
 })

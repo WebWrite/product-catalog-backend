@@ -13,5 +13,10 @@ export const SUCCESS_MESSAGES = Object.freeze({
   USER_PROFILE_UPDATED: "User profile updated successfully.",
   SELLER_PROFILE_CREATED: "Seller profile created",
   OTP_SEND: "Otp send successfully",
-  OTP_VERIFIED: "Otp verified successfully"
+  OTP_VERIFIED: "Otp verified successfully",
+  // Products
+  PRODUCTS_FETCHED: "Seller products fetched successfully.",
+  PRODUCTS_EMPTY: "You haven't added any products yet.",
+  PRODUCT_CREATED:"product created successfully",
+  PRODUCT_DELETED: "Product deleted successfully.",
 })
