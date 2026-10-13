@@ -7,37 +7,83 @@ class CartRepository {
   static async AddItem(data) {
     const { userId, productId, quantity, size } = data
 
-    let cart = await Cart.findOne({ userId })
+    const cart = await Cart.findOne({ userId })
 
-    if (!cart) {
-      cart = await Cart.create({
-        userId,
-        items: [{ productId, quantity, size }]
-      })
-
-      return cart
-    }
-
-    const existingItem = cart.items.find(
+    const existingItem = cart?.items.find(
       (item) =>
         item.productId.toString() === productId.toString() && item.size === size
     )
 
-    if (existingItem) {
-      if (existingItem.quantity + quantity > 25) {
-        throw new AppError(
-          ERROR_MESSAGES.CART_QUANTITY_EXCEED,
-          HTTP_STATUS.BAD_REQUEST
-        )
-      }
+    const newQuantity = (existingItem?.quantity ?? 0) + quantity
 
-      existingItem.quantity += quantity
+    if (newQuantity > 25) {
+      throw new AppError(
+        ERROR_MESSAGES.CART_QUANTITY_EXCEED,
+        HTTP_STATUS.BAD_REQUEST
+      )
+    }
+
+    if (!cart) {
+      return await Cart.create({
+        userId,
+        items: [{ productId, quantity, size }]
+      })
+    }
+
+    if (existingItem) {
+      existingItem.quantity = newQuantity
     } else {
       cart.items.push({ productId, quantity, size })
     }
 
     await cart.save()
 
+    return cart
+  }
+
+  static async getCart(userId) {
+    return await Cart.findOne({ userId })
+  }
+
+  static async editCart(cart, data) {
+    const item = cart.items.id(data.itemId)
+    item.quantity += data.quantity
+
+    if (item.quantity === 0) {
+      cart.items.pull(data.itemId)
+    }
+
+    await cart.save()
+
+    return cart
+  }
+
+  static async removeItem(cart, id) {
+    cart.items.pull(id)
+    await cart.save()
+    return cart
+  }
+
+  static async delete(id) {
+    return await Cart.findOneAndDelete({ userId: id })
+  }
+
+  static async mergeItems(userId, items) {
+    const cart = await this.getCart(userId)
+
+    for (const item of items) {
+      const existing = cart.items.find(
+        (i) =>
+          i.productId.toString() === item.productId.toString() &&
+          i.size === item.size
+      )
+      if (existing) {
+        existing.quantity += item.quantity
+      } else {
+        cart.items.push(item)
+      }
+    }
+    await cart.save()
     return cart
   }
 }
