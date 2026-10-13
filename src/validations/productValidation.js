@@ -92,9 +92,20 @@ export const bulkDeleteProductsSchema = Joi.object({
     .required(),
 }); 
 
+
 export const updateProductStockSchema = Joi.object({
-  stock: Joi.number().integer().min(0).required(),
+  stock: Joi.number()
+    .integer()
+    .min(0)
+    .required()
+    .messages({
+      "any.required": "Product stock is required.",
+      "number.base": "Product stock must be a number.",
+      "number.integer": "Product stock must be an integer.",
+      "number.min": "Product stock cannot be negative.",
+    }),
 });
+
 
 
 

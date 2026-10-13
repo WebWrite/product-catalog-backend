@@ -14,13 +14,14 @@ const stockHistorySchema = new mongoose.Schema(
       required: true,
     },
 
-    change: {
+
+    previousStock: {
       type: Number,
-      required: true,
-      validate: {
-        validator: Number.isInteger,
-        message: "Stock change must be an integer",
-      },
+      required: true
+    },
+    newStock: {
+      type: Number,
+      required: true
     },
 
     reason: {
@@ -32,16 +33,16 @@ const stockHistorySchema = new mongoose.Schema(
         "order_cancelled",
         "manual_adjustment",
       ],
-      required: true,
+      default: "manual_adjustment",
     },
 
   },
   {
-    timestamps:true
+    timestamps: true
   }
 );
 
-stockHistorySchema.index({productId: 1});
+stockHistorySchema.index({ productId: 1 });
 
 const StockHistory = mongoose.model("StockHistory", stockHistorySchema);
 

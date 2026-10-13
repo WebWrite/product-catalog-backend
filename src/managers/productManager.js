@@ -1,5 +1,5 @@
 import { deleteProductImage, deleteProductImages, uploadProductImage } from "../utils/cloudinary.util.js";
-import { createProduct as createProductRecord, findProductsBySellerId, deleteProductByOwner, findProductsByOwner, deleteProductsByOwner, updateProductStockByOwner, updateProductByOwner, findProductByOwner, findProductStockByOwner, findAllProducts, findProductById } from "../repositories/product.repo.js";
+import { createProduct as createProductRecord, findProductsBySellerId, deleteProductByOwner, findProductsByOwner, deleteProductsByOwner, updateProductStockByOwner, updateProductByOwner, findProductByOwner, findProductStockByOwner, findAllProducts, findProductById, createStockHistory } from "../repositories/product.repo.js";
 import { compressProductImage } from "../utils/compress-image.js";
 import AppError from "../utils/AppError.js";
 import { HTTP_STATUS } from "../constants/statusCodes.js";
@@ -95,10 +95,22 @@ export const updateProductStockManager = async (productId, sellerId, stock) => {
   if (!currentProduct) {
     throw new AppError(ERROR_MESSAGES.PRODUCT_NOT_FOUND, HTTP_STATUS.NOT_FOUND);
   }
+  const previousStock = currentProduct.stock;
 
   if (currentProduct.stock === stock) return currentProduct;
 
-  return updateProductStockByOwner(productId, sellerId, stock,currentProduct.stock);
+  const updatedProduct = await updateProductStockByOwner(productId, sellerId, stock, previousStock);
+  if (!updatedProduct) {
+    throw new AppError(ERROR_MESSAGES.INVALID_REQUEST, HTTP_STATUS.CONFLICT);
+  }
+  await createStockHistory({
+    productId: updatedProduct._id,
+    sellerId,
+    previousStock,
+    newStock: updatedProduct.stock,
+  });
+
+  return updatedProduct;
 };
 
 
@@ -106,19 +118,24 @@ const cleanupProductImage = async (publicId, productId, action) => {
   try {
     await deleteProductImage(publicId);
   } catch (error) {
-    logger.error(`Failed to ${action} product image`, {productId,publicId,error: error.message,});
+    logger.error(`Failed to ${action} product image`, { productId, publicId, error: error.message, });
   }
 };
 
-export const updateProductManager = async (productId,sellerId,data,imageBuffer) => {
+export const updateProductManager = async (productId, sellerId, data, imageBuffer) => {
   const currentProduct = await findProductByOwner(productId, sellerId);
 
   if (!currentProduct) {
-    throw new AppError(ERROR_MESSAGES.PRODUCT_NOT_FOUND,HTTP_STATUS.NOT_FOUND);
+    throw new AppError(ERROR_MESSAGES.PRODUCT_NOT_FOUND, HTTP_STATUS.NOT_FOUND);
   }
 
   const updateData = { ...data };
   let newImage;
+
+  const stockWasProvided = Object.hasOwn(data, "stock");
+  const previousStock = currentProduct.stock;
+  const stockChanged = stockWasProvided && data.stock !== previousStock;
+
 
   if (imageBuffer) {
     const compressedBuffer = await compressProductImage(imageBuffer);
@@ -129,10 +146,10 @@ export const updateProductManager = async (productId,sellerId,data,imageBuffer) 
   let updatedProduct;
 
   try {
-    updatedProduct = await updateProductByOwner( productId, sellerId, updateData);
+    updatedProduct = await updateProductByOwner(productId, sellerId, updateData);
   } catch (error) {
     if (newImage?.publicId) {
-      await cleanupProductImage(newImage.publicId,productId,  "clean up newly uploaded");
+      await cleanupProductImage(newImage.publicId, productId, "clean up newly uploaded");
     }
 
     throw error;
@@ -140,15 +157,25 @@ export const updateProductManager = async (productId,sellerId,data,imageBuffer) 
 
   if (!updatedProduct) {
     if (newImage?.publicId) {
-      await cleanupProductImage( newImage.publicId, productId,"clean up newly uploaded");
+      await cleanupProductImage(newImage.publicId, productId, "clean up newly uploaded");
     }
 
-    throw new AppError(ERROR_MESSAGES.PRODUCT_NOT_FOUND,HTTP_STATUS.NOT_FOUND );
+    throw new AppError(ERROR_MESSAGES.PRODUCT_NOT_FOUND, HTTP_STATUS.NOT_FOUND);
   }
 
   if (newImage && currentProduct.image?.publicId) {
-    await cleanupProductImage(currentProduct.image.publicId,productId,"delete old");
+    await cleanupProductImage(currentProduct.image.publicId, productId, "delete old");
   }
+
+  if (stockChanged) {
+  await createStockHistory({
+    productId: updatedProduct._id,
+    sellerId,
+    previousStock,
+    newStock: updatedProduct.stock,
+  });
+}
+
 
   return updatedProduct;
 };

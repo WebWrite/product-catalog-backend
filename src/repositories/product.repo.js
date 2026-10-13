@@ -1,4 +1,5 @@
 import Product from "../models/Product.js";
+import StockHistory from "../models/StockHistory.js";
 
 
 export const createProduct = async (data) => {
@@ -49,7 +50,7 @@ export const updateProductStockByOwner = async (productId, sellerId, stock, curr
 
 export const findProductByOwner = async (productId, sellerId) =>
   Product.findOne({ _id: productId, sellerId })
-    .select("_id image")
+    .select("_id image stock")
     .lean();
 
 
@@ -66,4 +67,10 @@ export const findProductStockByOwner = async (productId, sellerId) =>
 
 export const findAllProducts = async () =>
   Product.find({}).sort({ createdAt: -1 }).lean();
+
+
+
+export const createStockHistory = async (data) => {
+  return StockHistory.create(data);
+};
 
