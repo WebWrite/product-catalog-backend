@@ -11,5 +11,5 @@ export const compressProductImage = async (buffer) => {
       withoutEnlargement: true,
     })
     .webp({ quality: 78 })
-    .toBuffer();
+    .toBuffer();  
 };

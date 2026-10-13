@@ -4,6 +4,7 @@ import { ERROR_MESSAGES } from "../constants/errorMessages.js"
 const errorHandler = (err, req, res, next) => {
   logger.error({
     message: err.message,
+    requestId: req.requestId,
     method: req.method,
     url: req.originalUrl,
     statusCode: err.statusCode || 500,

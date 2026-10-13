@@ -57,6 +57,7 @@ class UserManager {
     const accessToken = Token.getAccessToken(user._id, user.role)
     const refreshToken = Token.getRefreshToken(user._id, user.role)
     await UserRepository.updateRefreshToken(user._id, refreshToken)
+    console.log("this is login details",user._id,refreshToken)
     return {
       user,
       accessToken,

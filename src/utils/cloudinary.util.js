@@ -1,8 +1,10 @@
-
 import { randomUUID } from "node:crypto";
 import streamifier from "streamifier";
 import cloudinary from "../config/cloudinary.js";
 import { PRODUCT_IMAGE_FOLDER } from "../constants/productConstants.js";
+import { ERROR_MESSAGES } from "../constants/errorMessages.js";
+import { HTTP_STATUS } from "../constants/statusCodes.js";
+import AppError from "./AppError.js";
 
 export const uploadProductImage = (buffer) =>
   new Promise((resolve, reject) => {
@@ -35,7 +37,40 @@ export const deleteProductImage = async (publicId) => {
   });
 
   if (result.result !== "ok" && result.result !== "not found") {
-    throw new Error(`Cloudinary image deletion failed: ${result.result}`);
+    throw new AppError(
+      ERROR_MESSAGES.CLOUDINARY_DELETE_FAILED,
+      HTTP_STATUS.INTERNAL_SERVER_ERROR
+    );
+  }
+
+  return result;
+};
+
+export const deleteProductImages = async (publicIds) => {
+  if (!publicIds.length) return;
+
+  if (publicIds.length > 100) {
+    throw new AppError(
+      ERROR_MESSAGES.CLOUDINARY_BULK_DELETE_LIMIT,
+      HTTP_STATUS.BAD_REQUEST
+    );
+  }
+
+  const result = await cloudinary.api.delete_resources(publicIds, {
+    resource_type: "image",
+    type: "upload",
+    invalidate: true,
+  });
+
+  const failedDeletions = Object.values(result.deleted || {}).filter(
+    (status) => status !== "deleted" && status !== "not_found"
+  );
+
+  if (failedDeletions.length) {
+    throw new AppError(
+      ERROR_MESSAGES.CLOUDINARY_BULK_DELETE_FAILED,
+      HTTP_STATUS.INTERNAL_SERVER_ERROR
+    );
   }
 
   return result;

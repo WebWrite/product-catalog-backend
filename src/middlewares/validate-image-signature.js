@@ -1,12 +1,16 @@
 import { fileTypeFromBuffer } from "file-type";
 import { ALLOWED_IMAGE_MIME_TYPES } from "../constants/productConstants.js";
 
-export const validateImageSignature = async (req, res, next) => {
+export const validateImageSignature = (required) => async (req, res, next) => {
   try {
     if (!req.file) {
-      return res.status(400).json({
-        message: "Product image is required.",
-      });
+      if (required) {
+        return res.status(400).json({
+          message: "Product image is required.",
+        });
+      }
+
+      return next();
     }
 
     const detectedType = await fileTypeFromBuffer(req.file.buffer);

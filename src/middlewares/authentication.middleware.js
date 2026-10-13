@@ -18,4 +18,5 @@ const authentication = (requestToken, secretKey) => {
     }
   }
 }
+
 export default authentication
