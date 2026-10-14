@@ -42,7 +42,14 @@ class CartRepository {
   }
 
   static async getCart(userId) {
-    return await Cart.findOne({ userId })
+    return await Cart.findOne({ userId }).populate({
+      path: "items.productId",
+
+      populate: {
+        path: "sellerId",
+        select: "name email isVerified"
+      }
+    })
   }
 
   static async editCart(cart, data) {
