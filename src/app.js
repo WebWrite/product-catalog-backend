@@ -37,13 +37,13 @@ app.use(express.urlencoded({ extended: true }))
 app.use(requestLogger)
 app.use(`${baseURL}/auth`, authRoutes)
 app.use(`${baseURL}/user`, userRoutes)
-app.use(`${baseURL}`, sellerRoutes)
 app.use(
   `${baseURL}/cart`,
   authentication("accessToken", process.env.ACCESS_TOKEN_SECRET_KEY),
   authorization("customer"),
   cartRoutes
 )
+app.use(`${baseURL}`, sellerRoutes)
 
 app.use(notFound)
 

@@ -19,7 +19,7 @@ const otpSchema = Joi.string()
     "string.pattern.base": "OTP must be exactly 6 digits",
     "any.required": "OTP is required"
   })
-  
+
 const passwordSchema = Joi.string()
   .min(8)
   .max(128)

@@ -76,7 +76,14 @@ class CartRepository {
   }
 
   static async mergeItems(userId, items) {
-    const cart = await this.getCart(userId)
+    let cart = await Cart.findOne({ userId })
+
+    if (!cart) {
+      cart = await Cart.create({
+        userId,
+        items: []
+      })
+    }
 
     for (const item of items) {
       const existing = cart.items.find(
@@ -84,14 +91,19 @@ class CartRepository {
           i.productId.toString() === item.productId.toString() &&
           i.size === item.size
       )
+
       if (existing) {
-        existing.quantity += item.quantity
+        existing.quantity = Math.min(25, existing.quantity + item.quantity)
       } else {
-        cart.items.push(item)
+        cart.items.push({
+          ...item,
+          quantity: Math.min(25, item.quantity)
+        })
       }
     }
+
     await cart.save()
-    return cart
+    return await this.getCart(userId)
   }
 }
 

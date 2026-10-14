@@ -24,13 +24,12 @@ export const ERROR_MESSAGES = Object.freeze({
 
   OTP_EXPIRED: "Otp expired or invalid",
   OTP_INVALID: "Invalid Otp",
-  PRODUCT_NOT_FOUND: "Product not found.",
   PRODUCT_OWNERSHIP_REQUIRED: "You are not authorized to modify this product.",
-  CLOUDINARY_BULK_DELETE_FAILED: "Failed to delete product images from Cloudinary.",
-  CLOUDINARY_BULK_DELETE_LIMIT: "Cannot delete more than 100 product images at once.",
+  CLOUDINARY_BULK_DELETE_FAILED:
+    "Failed to delete product images from Cloudinary.",
+  CLOUDINARY_BULK_DELETE_LIMIT:
+    "Cannot delete more than 100 product images at once.",
   CLOUDINARY_DELETE_FAILED: "Failed to delete product image from Cloudinary.",
-  PRODUCT_NOT_FOUND: "One or more products were not found or are not owned by you.",
-
 
   //Cart
   CART_QUANTITY_EXCEED: "Maximum quantity is 25.",
