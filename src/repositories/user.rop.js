@@ -20,9 +20,16 @@ class UserRepository {
   static async invalidateRefreshToken(refreshToken) {
     await User.findOneAndUpdate({ refreshToken }, { refreshToken: null })
   }
-  static async updateRefreshToken(id, refreshToken) {
-    await User.findOneAndUpdate({ id }, { refreshToken: refreshToken })
-  }
+  
+static async updateRefreshToken(userId, refreshToken) {
+  return User.findOneAndUpdate(
+    { _id: userId },
+    { refreshToken },
+    { new: true, runValidators: true }
+  )
+}
+
+  
   static async updateVerifyStatus(email) {
     await User.findOneAndUpdate({ email }, { isVerified: true })
   }

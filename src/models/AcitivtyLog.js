@@ -7,22 +7,40 @@ const activityLogSchema = new mongoose.Schema(
             ref: "User",
             required: true,
         },
-
-        entityType: {
+        action: {
             type: String,
-            enum: ["user", "product", "category", "order", "payment"],
+            required: true,
+            trim: true,
+        },
+        target: {
+            type: String,
+            required: true,
+            trim: true,
+        },
+        role: {
+            type: String,
+            enum: ["customer", "seller", "admin"],
             required: true,
         },
-
-        entityId: {
-            type: mongoose.Schema.Types.ObjectId,
+        status: {
+            type: String,
+            enum: ["success", "failure"],
             required: true,
+        },
+        message: {
+            type: String,
+            required: true,
+            maxlength: 300,
+        },
+
+        requestId: {
+            type: String,
+            trim: true,
         },
 
         metadata: {
-            type: string,
-            default: null,
-            trim: true
+            type: mongoose.Schema.Types.Mixed,
+            default: undefined,
         },
     },
     {
@@ -30,9 +48,10 @@ const activityLogSchema = new mongoose.Schema(
     }
 );
 
-activityLogSchema.index({
-    userId: 1,
-});
+activityLogSchema.index({ userId: 1, createdAt: -1 });
+activityLogSchema.index({ target: 1, createdAt: -1 });
+activityLogSchema.index({ createdAt: -1 });
+
 
 const ActivityLog = mongoose.model("ActivityLog", activityLogSchema);
 
