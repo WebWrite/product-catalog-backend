@@ -1,6 +1,5 @@
 import { Router } from "express"
 import UserController from "../Controllers/UserController.js"
-import authLimiter from "../middlewares/rateLimiting.js"
 import authentication from "../middlewares/authentication.middleware.js"
 
 const router = Router()

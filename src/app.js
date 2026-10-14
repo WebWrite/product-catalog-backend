@@ -11,6 +11,9 @@ import swaggerOptions from "./config/swagger.js"
 import authRoutes from "./Routes/auth.routes.js"
 import userRoutes from "./Routes/user.routes.js"
 import sellerRoutes from "./Routes/product.route.js"
+import cartRoutes from "./Routes/cart.routes.js"
+import authorization from "./middlewares/authorization.middleware.js"
+import authentication from "./middlewares/authentication.middleware.js"
 
 //import userRoutes from "./Routes/user.routes.js"
 export const app = express()
@@ -35,6 +38,12 @@ app.use(requestLogger)
 app.use(`${baseURL}/auth`, authRoutes)
 app.use(`${baseURL}/user`, userRoutes)
 app.use(`${baseURL}`, sellerRoutes)
+app.use(
+  `${baseURL}/cart`,
+  authentication("accessToken", process.env.ACCESS_TOKEN_SECRET_KEY),
+  authorization("customer"),
+  cartRoutes
+)
 
 app.use(notFound)
 

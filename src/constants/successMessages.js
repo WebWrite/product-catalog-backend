@@ -20,4 +20,8 @@ export const SUCCESS_MESSAGES = Object.freeze({
   PRODUCT_CREATED:"product created successfully",
   PRODUCT_DELETED: "Product deleted successfully.",
   PRODUCT_STOCK_UPDATED: "Product stock updated successfully.",
+
+  //Cart
+  EMPTY_CART: "Your cart is empty",
+  CART_DELETED: "Your cart is deleted"
 })
