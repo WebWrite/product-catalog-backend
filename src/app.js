@@ -34,7 +34,7 @@ app.use(express.urlencoded({ extended: true }))
 app.use(requestLogger)
 app.use(`${baseURL}/auth`, authRoutes)
 app.use(`${baseURL}/user`, userRoutes)
-app.use(`${baseURL}/seller`, sellerRoutes)
+app.use(`${baseURL}`, sellerRoutes)
 
 app.use(notFound)
 

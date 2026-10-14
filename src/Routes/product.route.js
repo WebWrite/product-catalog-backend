@@ -12,17 +12,17 @@ import validateObjectId from "../middlewares/validateObjectId.js";
 
 const router = Router();
 
-router.post("/add-product", authentication("accessToken", process.env.ACCESS_TOKEN_SECRET_KEY),allowedRoles("seller"), upload.single("image"),validateImageSignature(true),validate(createProductSchema),asyncHandler(addProduct));
+router.post("/seller/add-product", authentication("accessToken", process.env.ACCESS_TOKEN_SECRET_KEY),allowedRoles("seller"), upload.single("image"),validateImageSignature(true),validate(createProductSchema),asyncHandler(addProduct));
 
-router.get("/products",  authentication("accessToken", process.env.ACCESS_TOKEN_SECRET_KEY),allowedRoles("seller"),asyncHandler(getSellerProducts));
+router.get("/seller/products",  authentication("accessToken", process.env.ACCESS_TOKEN_SECRET_KEY),allowedRoles("seller"),asyncHandler(getSellerProducts));
 
-router.delete("/delete-product/:id",  authentication("accessToken", process.env.ACCESS_TOKEN_SECRET_KEY),allowedRoles("seller"),asyncHandler(deleteProduct));
+router.delete("/seller/delete-product/:id",  authentication("accessToken", process.env.ACCESS_TOKEN_SECRET_KEY),allowedRoles("seller"),asyncHandler(deleteProduct));
 
-router.delete("/bulk-delete",authentication("accessToken", process.env.ACCESS_TOKEN_SECRET_KEY),allowedRoles("seller"),validate(bulkDeleteProductsSchema),asyncHandler(bulkDeleteProducts));
+router.delete("/seller/bulk-delete",authentication("accessToken", process.env.ACCESS_TOKEN_SECRET_KEY),allowedRoles("seller"),validate(bulkDeleteProductsSchema),asyncHandler(bulkDeleteProducts));
 
-router.patch("/update-stock/:id",authentication("accessToken", process.env.ACCESS_TOKEN_SECRET_KEY),allowedRoles("seller"),validateObjectId,validate(updateProductStockSchema),asyncHandler(updateProductStock))
+router.patch("/seller/update-stock/:id",authentication("accessToken", process.env.ACCESS_TOKEN_SECRET_KEY),allowedRoles("seller"),validateObjectId,validate(updateProductStockSchema),asyncHandler(updateProductStock))
 
-router.patch("/update-product/:id",authentication("accessToken", process.env.ACCESS_TOKEN_SECRET_KEY),allowedRoles("seller"),validateObjectId,upload.single("image"),validateImageSignature(false),validate(updateProductSchema),asyncHandler(updateProduct));
+router.patch("/seller/update-product/:id",authentication("accessToken", process.env.ACCESS_TOKEN_SECRET_KEY),allowedRoles("seller"),validateObjectId,upload.single("image"),validateImageSignature(false),validate(updateProductSchema),asyncHandler(updateProduct));
 
 //public
 router.get("/", asyncHandler(getAllProducts));

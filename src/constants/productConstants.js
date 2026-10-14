@@ -12,3 +12,5 @@ export const ALLOWED_IMAGE_MIME_TYPES = [
   "image/png",
   "image/webp",
 ];
+export const PRODUCT_SIZES = ["S", "M", "L", "XL"];
+export const DEFAULT_PRODUCT_SIZES = ["S", "M", "L", "XL"];

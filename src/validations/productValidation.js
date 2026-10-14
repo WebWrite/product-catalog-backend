@@ -1,6 +1,6 @@
 
 import Joi from "joi";
-import { PRODUCT_CATEGORIES } from "../constants/productConstants.js";
+import { DEFAULT_PRODUCT_SIZES, PRODUCT_CATEGORIES, PRODUCT_SIZES } from "../constants/productConstants.js";
 
 export const createProductSchema = Joi.object({
   category: Joi.string()
@@ -52,12 +52,12 @@ export const createProductSchema = Joi.object({
     }),
 
   sizes: Joi.array()
-    .items(Joi.string().valid("S", "M", "L", "XL"))
+    .items(Joi.string().valid(...PRODUCT_SIZES))
     .unique()
-    .default([])
+    .default(DEFAULT_PRODUCT_SIZES)
     .messages({
       "array.base": "Sizes must be an array.",
-      "any.only": "Each size must be one of: S, M, L, XL.",
+      "any.only": `Each size must be one of: ${PRODUCT_SIZES.join(", ")}.`,
       "array.unique": "Duplicate sizes are not allowed.",
     }),
 
@@ -90,7 +90,7 @@ export const bulkDeleteProductsSchema = Joi.object({
     .max(100)
     .unique()
     .required(),
-}); 
+});
 
 
 export const updateProductStockSchema = Joi.object({
@@ -151,11 +151,11 @@ export const updateProductSchema = Joi.object({
     }),
 
   sizes: Joi.array()
-    .items(Joi.string().valid("S", "M", "L", "XL"))
+    .items(Joi.string().valid(...PRODUCT_SIZES))
     .unique()
     .messages({
       "array.base": "Sizes must be an array.",
-      "any.only": "Each size must be one of: S, M, L, XL.",
+      "any.only": `Each size must be one of: ${PRODUCT_SIZES.join(", ")}.`,
       "array.unique": "Duplicate sizes are not allowed.",
     }),
 
