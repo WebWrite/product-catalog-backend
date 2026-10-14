@@ -23,5 +23,12 @@ export const ERROR_MESSAGES = Object.freeze({
   VALIDATION_FAILED: "validation failed",
 
   OTP_EXPIRED: "Otp expired or invalid",
-  OTP_INVALID: "Invalid Otp"
+  OTP_INVALID: "Invalid Otp",
+
+  //Cart
+  CART_QUANTITY_EXCEED: "Maximum quantity is 25.",
+  LOW_STOCK: "Low stock",
+  PRODUCT_NOT_FOUND: "Product not found or unavailable",
+  CART_ITEM_NOT_FOUND: "Cart not found",
+  EMPTY_CART: "Empty Cart"
 })
