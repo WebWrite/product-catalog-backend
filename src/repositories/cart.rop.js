@@ -12,9 +12,9 @@ class CartRepository {
 
     const existingItem = cart?.items.find(
       (item) =>
-        item.productId.toString() === productId.toString() && item.size === size
+        item.productId.toString() === productId.toString() &&
+        (size == null ? item.size == null : item.size === size)
     )
-
     const newQuantity = (existingItem?.quantity ?? 0) + quantity
 
     if (newQuantity > 25) {
