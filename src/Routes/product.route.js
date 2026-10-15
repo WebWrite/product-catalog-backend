@@ -17,7 +17,7 @@ router.post("/seller/add-product", authentication("accessToken", process.env.ACC
 router.get("/seller/products",  authentication("accessToken", process.env.ACCESS_TOKEN_SECRET_KEY),allowedRoles("seller"),asyncHandler(getSellerProducts));
 
 router.delete("/seller/delete-product/:id",  authentication("accessToken", process.env.ACCESS_TOKEN_SECRET_KEY),allowedRoles("seller"),asyncHandler(deleteProduct));
-
+    
 router.delete("/seller/bulk-delete",authentication("accessToken", process.env.ACCESS_TOKEN_SECRET_KEY),allowedRoles("seller"),validate(bulkDeleteProductsSchema),asyncHandler(bulkDeleteProducts));
 
 router.patch("/seller/update-stock/:id",authentication("accessToken", process.env.ACCESS_TOKEN_SECRET_KEY),allowedRoles("seller"),validateObjectId,validate(updateProductStockSchema),asyncHandler(updateProductStock))

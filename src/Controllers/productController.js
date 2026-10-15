@@ -1,3 +1,4 @@
+import mongoose from "mongoose";
 import { ERROR_MESSAGES } from "../constants/errorMessages.js";
 import { HTTP_STATUS } from "../constants/statusCodes.js";
 import { SUCCESS_MESSAGES } from "../constants/successMessages.js";
@@ -30,15 +31,29 @@ export const addProduct = async (req, res) => {
 
 
 export const getSellerProducts = async (req, res) => {
-  const products = await getSellerProductsManager(req.user.id);
+  const { category, search, sortBy = "newest", cursor } = req.query;
+  const limit = Math.min(50, Math.max(1, Number(req.query.limit) || 10));
+
+  if (cursor && !mongoose.isValidObjectId(cursor)) {
+    throw new AppError("Invalid cursor", HTTP_STATUS.BAD_REQUEST);
+  }
+
+  const products = await getSellerProductsManager(req.user.id, { category, search, sortBy, cursor, limit, });
+
+  const hasNextPage = products.length > limit;
+  const data = products.slice(0, limit);
 
   return res.status(HTTP_STATUS.OK).json({
     success: true,
-    message: products.length
+    message: data.length
       ? SUCCESS_MESSAGES.PRODUCTS_FETCHED
       : SUCCESS_MESSAGES.PRODUCTS_EMPTY,
-    count: products.length,
-    data: products,
+    count: data.length,
+    data,
+    pagination: {
+      hasNextPage,
+      nextCursor: hasNextPage ? data[data.length - 1]._id : null,
+    },
   });
 };
 

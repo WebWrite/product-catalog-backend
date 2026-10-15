@@ -7,9 +7,14 @@ export const createProduct = async (data) => {
 };
 
 
-export const findProductsBySellerId = async (sellerId) => {
-  return Product.find({ sellerId })
-    .sort({ createdAt: -1 })
+export const findProductsBySellerId = (sellerId, filter, sort, cursor, limit) => {
+  const query = { sellerId, ...filter };
+
+  if (cursor) query._id = { $lt: cursor };
+
+  return Product.find(query)
+    .sort(sort)
+    .limit(limit + 1)
     .lean();
 };
 
