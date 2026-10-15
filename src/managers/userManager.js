@@ -7,6 +7,7 @@ import OtpUtils from "../utils/otp.util.js"
 import { ERROR_MESSAGES } from "../constants/errorMessages.js"
 import AppError from "../utils/AppError.js"
 import { HTTP_STATUS } from "../constants/statusCodes.js"
+import CartRepository from "../repositories/cart.rop.js"
 class UserManager {
   static async registerUser(data, session) {
     let isUser = await UserUtil.findUserWitEmail(data.email)
@@ -57,8 +58,10 @@ class UserManager {
     const accessToken = Token.getAccessToken(user._id, user.role)
     const refreshToken = Token.getRefreshToken(user._id, user.role)
     await UserRepository.updateRefreshToken(user._id, refreshToken)
+    const cart = await CartRepository.findUserCartCount(user._id)
     return {
       user,
+      cart,
       accessToken,
       refreshToken
     }
@@ -99,8 +102,11 @@ class UserManager {
     const accessToken = Token.getAccessToken(user._id, user.role)
     const refreshToken = Token.getRefreshToken(user._id, user.role)
     await UserRepository.updateRefreshToken(user._id, refreshToken)
+    const cart = await CartRepository.findUserCartCount(user._id)
+
     return {
       user,
+      cart,
       accessToken,
       refreshToken
     }
@@ -116,12 +122,14 @@ class UserManager {
 
   static async findUserById(id) {
     let user = await UserRepository.finUserbyId(id)
+    let cart = await CartRepository.findUserCartCount(id)
     return {
       name: user.name,
       email: user.email,
       role: user.role,
       isVerified: user.isVerified,
-      status: user.status
+      status: user.status,
+      cart
     }
   }
 }
