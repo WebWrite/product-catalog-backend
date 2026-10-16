@@ -49,9 +49,20 @@ router.delete(
   asyncHandler(deleteProduct)
 )
 
-router.delete("/seller/delete-product/:id",  authentication("accessToken", process.env.ACCESS_TOKEN_SECRET_KEY),allowedRoles("seller"),asyncHandler(deleteProduct));
-    
-router.delete("/seller/bulk-delete",authentication("accessToken", process.env.ACCESS_TOKEN_SECRET_KEY),allowedRoles("seller"),validate(bulkDeleteProductsSchema),asyncHandler(bulkDeleteProducts));
+router.delete(
+  "/seller/delete-product/:id",
+  authentication("accessToken", process.env.ACCESS_TOKEN_SECRET_KEY),
+  allowedRoles("seller"),
+  asyncHandler(deleteProduct)
+)
+
+router.delete(
+  "/seller/bulk-delete",
+  authentication("accessToken", process.env.ACCESS_TOKEN_SECRET_KEY),
+  allowedRoles("seller"),
+  validate(bulkDeleteProductsSchema),
+  asyncHandler(bulkDeleteProducts)
+)
 
 router.patch(
   "/seller/update-product/:id",

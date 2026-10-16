@@ -1,3 +1,4 @@
+import mongoose from "mongoose"
 import { ERROR_MESSAGES } from "../constants/errorMessages.js"
 import { HTTP_STATUS } from "../constants/statusCodes.js"
 import { SUCCESS_MESSAGES } from "../constants/successMessages.js"
@@ -34,17 +35,23 @@ export const addProduct = async (req, res) => {
 }
 
 export const getSellerProducts = async (req, res) => {
-  const { category, search, sortBy = "newest", cursor } = req.query;
-  const limit = Math.min(50, Math.max(1, Number(req.query.limit) || 10));
+  const { category, search, sortBy = "newest", cursor } = req.query
+  const limit = Math.min(50, Math.max(1, Number(req.query.limit) || 10))
 
   if (cursor && !mongoose.isValidObjectId(cursor)) {
-    throw new AppError("Invalid cursor", HTTP_STATUS.BAD_REQUEST);
+    throw new AppError("Invalid cursor", HTTP_STATUS.BAD_REQUEST)
   }
 
-  const products = await getSellerProductsManager(req.user.id, { category, search, sortBy, cursor, limit, });
+  const products = await getSellerProductsManager(req.user.id, {
+    category,
+    search,
+    sortBy,
+    cursor,
+    limit
+  })
 
-  const hasNextPage = products.length > limit;
-  const data = products.slice(0, limit);
+  const hasNextPage = products.length > limit
+  const data = products.slice(0, limit)
 
   return res.status(HTTP_STATUS.OK).json({
     success: true,
@@ -55,12 +62,10 @@ export const getSellerProducts = async (req, res) => {
     data,
     pagination: {
       hasNextPage,
-      nextCursor: hasNextPage ? data[data.length - 1]._id : null,
-    },
-  });
-};
-
-
+      nextCursor: hasNextPage ? data[data.length - 1]._id : null
+    }
+  })
+}
 
 export const deleteProduct = async (req, res) => {
   const product = await deleteProductManager(req.params.id, req.user.id)

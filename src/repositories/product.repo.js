@@ -5,16 +5,22 @@ export const createProduct = async (data) => {
   return Product.create(data)
 }
 
-export const findProductsBySellerId = (sellerId, filter, sort, cursor, limit) => {
-  const query = { sellerId, ...filter };
+export const findProductsBySellerId = (
+  sellerId,
+  filter,
+  sort,
+  cursor,
+  limit
+) => {
+  const query = { sellerId, ...filter }
 
-  if (cursor) query._id = { $lt: cursor };
+  if (cursor) query._id = { $lt: cursor }
 
   return Product.find(query)
     .sort(sort)
     .limit(limit + 1)
-    .lean();
-};
+    .lean()
+}
 
 export const findProductById = async (productId) => {
   return Product.findById(productId)
@@ -85,7 +91,7 @@ export const findAllProducts = async (options) => {
   if (options.search?.trim()) {
     filter.name = {
       $regex: options.search.trim(),
-      $option: "i"
+      $options: "i"
     }
   }
   if (options.category) {

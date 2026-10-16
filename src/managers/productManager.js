@@ -49,14 +49,14 @@ export const createProduct = async (data, sellerId, imageBuffer) => {
 }
 
 export const getSellerProductsManager = (sellerId, options) => {
-  const { category, search, sortBy, cursor, limit } = options;
+  const { category, search, sortBy, cursor, limit } = options
 
-  const filter = {};
+  const filter = {}
 
-  if (category) filter.category = category;
+  if (category) filter.category = category
 
   if (search?.trim()) {
-    filter.name = { $regex: search.trim(), $options: "i" };
+    filter.name = { $regex: search.trim(), $options: "i" }
   }
 
   const sortOptions = {
@@ -64,8 +64,8 @@ export const getSellerProductsManager = (sellerId, options) => {
     "price-low": { price: 1, _id: 1 },
     "price-high": { price: -1, _id: -1 },
     "a-z": { name: 1, _id: 1 },
-    "z-a": { name: -1, _id: -1 },
-  };
+    "z-a": { name: -1, _id: -1 }
+  }
 
   return findProductsBySellerId(
     sellerId,
@@ -73,8 +73,8 @@ export const getSellerProductsManager = (sellerId, options) => {
     sortOptions[sortBy] || sortOptions.newest,
     cursor,
     limit
-  );
-};
+  )
+}
 
 export const deleteProductManager = async (productId, ownerId) => {
   const product = await deleteProductByOwner(productId, ownerId)
