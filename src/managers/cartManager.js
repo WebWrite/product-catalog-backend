@@ -93,9 +93,8 @@ class CartManager {
     const cart = await CartRepository.getCart(userId)
     const skipped = []
     const itemsToMerge = []
-
     for (const item of data) {
-      const existing = cart?.items.find(
+      const existing = (cart?.items ?? []).find(
         (i) =>
           i.productId.toString() === item.productId.toString() &&
           i.size === item.size

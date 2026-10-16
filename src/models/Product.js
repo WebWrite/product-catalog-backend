@@ -10,11 +10,15 @@ const productSchema = new mongoose.Schema(
 
     category: {
       type: String,
-      enum: ["Clothing", "Electronics", "Beauty", "Furniture", "Sports", "Toys", "Food",],
-      required: true,
-    categoryId: {
-      type: mongoose.Schema.Types.ObjectId,
-      ref: "Category",
+      enum: [
+        "Clothing",
+        "Electronics",
+        "Beauty",
+        "Furniture",
+        "Sports",
+        "Toys",
+        "Food"
+      ],
       required: true
     },
 
@@ -35,17 +39,13 @@ const productSchema = new mongoose.Schema(
     image: {
       url: {
         type: String,
-        required: true,
+        required: true
       },
       publicId: {
         type: String,
-        required: true,
-      },
-    images: {
-      type: [String],
-      default: []
+        required: true
+      }
     },
-
     price: {
       type: Number,
       required: true,
@@ -53,13 +53,13 @@ const productSchema = new mongoose.Schema(
     },
 
     sizes: {
-      type: [{
-        type: String,
-        enum: ["S", "M", "L", "XL"],
-      }],
-      default: ["S", "M", "L", "XL"],
-      type: [String],
-   
+      type: [
+        {
+          type: String,
+          enum: ["S", "M", "L", "XL"]
+        }
+      ],
+      default: ["S", "M", "L", "XL"]
     },
 
     stock: {
@@ -76,12 +76,20 @@ const productSchema = new mongoose.Schema(
       required: true
     }
   },
-      {
-    timestamps: true
+  {
+    timestamps: true,
+    toJSON: { virtuals: true },
+    toObject: { virtuals: true }
   }
 )
 
 productSchema.index({ sellerId: 1 })
+productSchema.virtual("seller", {
+  ref: "SellerProfile",
+  localField: "sellerId",
+  foreignField: "userId",
+  justOne: true
+})
 
 const Product = mongoose.model("Product", productSchema)
 

@@ -19,7 +19,7 @@ export const mergeCarts = Joi.object({
         "Object ID Validation"
       ).required(),
       quantity: Joi.number().min(1).max(25).required(),
-      size: Joi.string().trim().min(1).required()
+      size: Joi.string().trim().min(1).optional()
     })
   )
 })

@@ -17,7 +17,7 @@ export const SUCCESS_MESSAGES = Object.freeze({
   // Products
   PRODUCTS_FETCHED: "Seller products fetched successfully.",
   PRODUCTS_EMPTY: "You haven't added any products yet.",
-  PRODUCT_CREATED:"product created successfully",
+  PRODUCT_CREATED: "product created successfully",
   PRODUCT_DELETED: "Product deleted successfully.",
   PRODUCT_STOCK_UPDATED: "Product stock updated successfully.",
 
