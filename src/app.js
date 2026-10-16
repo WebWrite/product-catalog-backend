@@ -19,7 +19,6 @@ import authentication from "./middlewares/authentication.middleware.js"
 export const app = express()
 const baseURL = "/api/v1"
 app.set("trust proxy", 1)
-
 app.use(
   cors({
     origin: process.env.CLIENT_URL || "http://localhost:3000",
