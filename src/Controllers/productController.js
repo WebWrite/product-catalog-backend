@@ -33,32 +33,33 @@ export const addProduct = async (req, res) => {
   })
 }
 
+
 export const getSellerProducts = async (req, res) => {
-  const { category, search, sortBy = "newest", cursor } = req.query;
-  const limit = Math.min(50, Math.max(1, Number(req.query.limit) || 10));
+  const {category,search,sortBy = "newest",} = req.query;
 
-  if (cursor && !mongoose.isValidObjectId(cursor)) {
-    throw new AppError("Invalid cursor", HTTP_STATUS.BAD_REQUEST);
-  }
+  const page = Number(req.query.page) || 1;
+  const limit = Math.min(50,Math.max(1, Number(req.query.limit) || 10));
 
-  const products = await getSellerProductsManager(req.user.id, { category, search, sortBy, cursor, limit, });
+  const result = await getSellerProductsManager(req.user.id, {category,search,sortBy,page,limit,});
 
-  const hasNextPage = products.length > limit;
-  const data = products.slice(0, limit);
+  const { products, total } = result;
 
   return res.status(HTTP_STATUS.OK).json({
     success: true,
-    message: data.length
+    message: products.length
       ? SUCCESS_MESSAGES.PRODUCTS_FETCHED
       : SUCCESS_MESSAGES.PRODUCTS_EMPTY,
-    count: data.length,
-    data,
+    count: products.length,
+    data: products,
     pagination: {
-      hasNextPage,
-      nextCursor: hasNextPage ? data[data.length - 1]._id : null,
+      page,
+      limit,
+      total,
+      totalPages: Math.ceil(total / limit),
     },
   });
 };
+
 
 
 

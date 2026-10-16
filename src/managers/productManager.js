@@ -15,7 +15,8 @@ import {
   findProductStockByOwner,
   findAllProducts,
   findProductById,
-  createStockHistory
+  createStockHistory,
+  countSellerProducts
 } from "../repositories/product.repo.js"
 import { compressProductImage } from "../utils/compress-image.js"
 import AppError from "../utils/AppError.js"
@@ -48,15 +49,19 @@ export const createProduct = async (data, sellerId, imageBuffer) => {
   }
 }
 
-export const getSellerProductsManager = (sellerId, options) => {
-  const { category, search, sortBy, cursor, limit } = options;
+
+export const getSellerProductsManager = async (sellerId, options) => {
+  const {category, search,sortBy = "newest",page,limit,} = options;
 
   const filter = {};
 
   if (category) filter.category = category;
 
   if (search?.trim()) {
-    filter.name = { $regex: search.trim(), $options: "i" };
+    filter.name = {
+      $regex: search.trim(),
+      $options: "i",
+    };
   }
 
   const sortOptions = {
@@ -67,14 +72,17 @@ export const getSellerProductsManager = (sellerId, options) => {
     "z-a": { name: -1, _id: -1 },
   };
 
-  return findProductsBySellerId(
-    sellerId,
-    filter,
-    sortOptions[sortBy] || sortOptions.newest,
-    cursor,
-    limit
-  );
+  const sort = sortOptions[sortBy] || sortOptions.newest;
+  const skip = (page - 1) * limit;
+
+  const [products, total] = await Promise.all([
+    findProductsBySellerId(sellerId,  filter,sort,skip,limit ),
+    countSellerProducts(sellerId, filter),
+  ]);
+
+  return { products, total };
 };
+
 
 export const deleteProductManager = async (productId, ownerId) => {
   const product = await deleteProductByOwner(productId, ownerId)
