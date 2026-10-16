@@ -1,3 +1,4 @@
+import mongoose from "mongoose"
 import { ERROR_MESSAGES } from "../constants/errorMessages.js"
 import { HTTP_STATUS } from "../constants/statusCodes.js"
 import Cart from "../models/Cart.js"
@@ -11,9 +12,9 @@ class CartRepository {
 
     const existingItem = cart?.items.find(
       (item) =>
-        item.productId.toString() === productId.toString() && item.size === size
+        item.productId.toString() === productId.toString() &&
+        (size == null ? item.size == null : item.size === size)
     )
-
     const newQuantity = (existingItem?.quantity ?? 0) + quantity
 
     if (newQuantity > 25) {
@@ -104,6 +105,27 @@ class CartRepository {
 
     await cart.save()
     return await this.getCart(userId)
+  }
+
+  static async findUserCartCount(userId) {
+    let result = await Cart.aggregate([
+      {
+        $match: {
+          userId: new mongoose.Types.ObjectId(userId)
+        }
+      },
+      {
+        $project: {
+          _id: 0,
+          count: {
+            $sum: "$items.quantity"
+          }
+        }
+      }
+    ])
+
+    const cartCount = result[0]?.count ?? 0
+    return cartCount
   }
 }
 

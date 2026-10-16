@@ -164,12 +164,33 @@ export const updateProduct = async (req, res) => {
 }
 
 export const getAllProducts = async (req, res) => {
-  const products = await getAllProductsManager(req.query)
+  let {
+    minPrice,
+    maxPrice,
+    sortBy,
+    page,
+    limit,
+    search = "",
+    category = null,
+    inStock = null
+  } = req.query
+  page = Math.max(Number(page), 1)
+  limit = Math.min(Math.max(Number(limit), 1), 15)
 
+  let options = {
+    minPrice,
+    maxPrice,
+    sortBy,
+    page,
+    limit,
+    search,
+    category,
+    inStock
+  }
+  const products = await getAllProductsManager(options)
   return res.status(HTTP_STATUS.OK).json({
     success: true,
     message: SUCCESS_MESSAGES.PRODUCTS_FETCHED,
-    count: products.length,
     data: products
   })
 }

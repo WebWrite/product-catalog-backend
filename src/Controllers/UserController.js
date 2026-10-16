@@ -1,4 +1,3 @@
-import { HTTP_STATUS } from "../constants/statusCodes.js"
 import UserManager from "../managers/userManager.js"
 
 class UserController {
