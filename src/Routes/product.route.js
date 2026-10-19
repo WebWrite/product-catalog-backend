@@ -50,11 +50,12 @@ router.get(
   asyncHandler(getSellerProductStats)
 )
 
-router.delete(
-  "/seller/delete-product/:id",
+router.patch(
+  "/seller/update-stock/:id",
   authentication("accessToken", process.env.ACCESS_TOKEN_SECRET_KEY),
   allowedRoles("seller"),
-  asyncHandler(deleteProduct)
+  validate(updateProductStockSchema),
+  asyncHandler(updateProductStock)
 )
 
 router.delete(

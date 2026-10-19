@@ -77,7 +77,7 @@ export const updateProductStockSchema = Joi.object({
     "any.required": "Product stock is required.",
     "number.base": "Product stock must be a number.",
     "number.integer": "Product stock must be an integer.",
-    "number.min": "Product stock cannot be negative."
+    "number.min": "Product stock cannot negative number."
   })
 })
 
