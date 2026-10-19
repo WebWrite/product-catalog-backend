@@ -31,11 +31,12 @@ export const createProductSchema = Joi.object({
     "any.required": "Description is required."
   }),
 
-  price: Joi.number().min(0.01).max(1000000).precision(2).required().messages({
+  price: Joi.number().integer().min(1).max(1000000).required()
+  .messages({
     "number.base": "Price must be a number.",
-    "number.min": "Price must be greater than zero.",
+    "number.integer": "Price must be a whole number.",
+    "number.min": "Price must be at least 1.",
     "number.max": "Price cannot exceed 1,000,000.",
-    "number.precision": "Price cannot have more than 2 decimal places.",
     "any.required": "Price is required."
   }),
 
@@ -49,7 +50,7 @@ export const createProductSchema = Joi.object({
       "array.unique": "Duplicate sizes are not allowed."
     }),
 
-  stock: Joi.number().integer().min(0).max(100000).required().messages({
+  stock: Joi.number().integer().min(1).max(100000).required().messages({
     "number.base": "Stock must be a number.",
     "number.integer": "Stock must be a whole number.",
     "number.min": "Stock cannot be negative.",
@@ -102,7 +103,7 @@ export const updateProductSchema = Joi.object({
     "string.max": "Description cannot exceed 5000 characters."
   }),
 
-  price: Joi.number().min(0.01).max(1000000).precision(2).messages({
+  price: Joi.number().min(1).max(1000000).integer().messages({
     "number.base": "Price must be a number.",
     "number.min": "Price must be greater than zero.",
     "number.max": "Price cannot exceed 1,000,000.",
@@ -118,7 +119,7 @@ export const updateProductSchema = Joi.object({
       "array.unique": "Duplicate sizes are not allowed."
     }),
 
-  stock: Joi.number().integer().min(0).max(100000).messages({
+  stock: Joi.number().integer().min(1).max(100000).messages({
     "number.base": "Stock must be a number.",
     "number.integer": "Stock must be a whole number.",
     "number.min": "Stock cannot be negative.",
