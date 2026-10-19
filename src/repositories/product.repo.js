@@ -76,7 +76,9 @@ export const findProductStockByOwner = async (productId, sellerId) =>
   Product.findOne({ _id: productId, sellerId }).select("_id stock").lean()
 
 export const findAllProducts = async (options) => {
-  const filter = {}
+  const filter = {
+    status: "active"
+  }
   if (options.minPrice != null || options.maxPrice != null) {
     filter.price = {}
     if (options.minPrice != null) {
@@ -114,12 +116,6 @@ export const findAllProducts = async (options) => {
   const currentPage = Math.max(1, Number(options.page) || 1)
   const pageLimit = Math.max(1, Number(options.limit) || 15)
   const skip = (currentPage - 1) * pageLimit
-
-  Product.find({})
-    .sort({ createdAt: -1 })
-    .populate("sellerId", "name")
-    .populate("seller", "storeName storeType -_id")
-    .lean()
 
   const [products, total] = await Promise.all([
     Product.find(filter)
