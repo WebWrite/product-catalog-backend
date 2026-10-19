@@ -20,16 +20,14 @@ import {
   countSellerProducts,
   
 } from "../repositories/product.repo.js"
-import { compressProductImage } from "../utils/compress-image.js"
 import AppError from "../utils/AppError.js"
 import { HTTP_STATUS } from "../constants/statusCodes.js"
 import { ERROR_MESSAGES } from "../constants/errorMessages.js"
 import logger from "../config/logger.js"
 
 export const createProduct = async (data, sellerId, imageBuffer) => {
-  const compressedBuffer = await compressProductImage(imageBuffer)
 
-  const image = await uploadProductImage(compressedBuffer)
+  const image = await uploadProductImage(imageBuffer)
 
   try {
     return await createProductRecord({
@@ -198,8 +196,8 @@ export const updateProductManager = async (
   const stockChanged = stockWasProvided && data.stock !== previousStock
 
   if (imageBuffer) {
-    const compressedBuffer = await compressProductImage(imageBuffer)
-    newImage = await uploadProductImage(compressedBuffer)
+    
+    newImage = await uploadProductImage(imageBuffer)
     updateData.image = newImage
   }
 
