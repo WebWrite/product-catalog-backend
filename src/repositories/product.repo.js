@@ -5,22 +5,25 @@ export const createProduct = async (data) => {
   return Product.create(data)
 }
 
-export const findProductsBySellerId = (
-  sellerId,
-  filter,
-  sort,
-  cursor,
-  limit
-) => {
-  const query = { sellerId, ...filter }
-
-  if (cursor) query._id = { $lt: cursor }
-
-  return Product.find(query)
+export const findProductsBySellerId = (sellerId, filter,sort,skip,limit) => {
+  return Product.find({ sellerId, ...filter })
     .sort(sort)
-    .limit(limit + 1)
-    .lean()
-}
+    .skip(skip)
+    .limit(limit)
+    .lean();
+};
+export const countSellerProducts = (sellerId, filter) => {
+  return Product.countDocuments({ sellerId, ...filter });
+};
+export const getSellerProductStats = async (sellerId) => {
+  const [totalProducts, activeProducts] = await Promise.all([
+    Product.countDocuments({ sellerId }),
+    Product.countDocuments({ sellerId, status: "active" }),
+  ]);
+
+  return { totalProducts, activeProducts };
+};
+
 
 export const findProductById = async (productId) => {
   return Product.findById(productId)

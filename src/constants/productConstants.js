@@ -15,8 +15,7 @@ export const PRODUCT_LIMITS = {
 export const PRODUCT_IMAGE_FOLDER = "product-catalog/products"
 
 export const ALLOWED_IMAGE_MIME_TYPES = [
-  "image/jpeg",
-  "image/png",
+  
   "image/webp"
 ]
 export const PRODUCT_SIZES = ["S", "M", "L", "XL"]

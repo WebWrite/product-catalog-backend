@@ -14,6 +14,7 @@ import {
   getAllProducts,
   getProductById,
   getSellerProducts,
+  getSellerProductStats,
   updateProduct,
   updateProductStock
 } from "../Controllers/productController.js"
@@ -40,6 +41,13 @@ router.get(
   authentication("accessToken", process.env.ACCESS_TOKEN_SECRET_KEY),
   allowedRoles("seller"),
   asyncHandler(getSellerProducts)
+)
+
+router.get(
+  "/seller/products/stats",
+  authentication("accessToken", process.env.ACCESS_TOKEN_SECRET_KEY),
+  allowedRoles("seller"),
+  asyncHandler(getSellerProductStats)
 )
 
 router.delete(
