@@ -1,4 +1,65 @@
+
 import mongoose from "mongoose";
+
+const orderItemSchema = new mongoose.Schema(
+  {
+    productId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Product",
+      required: true,
+    },
+
+    sellerId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "User",
+      required: true,
+    },
+
+    name: {
+      type: String,
+      required: true,
+      trim: true,
+    },
+
+    price: {
+      type: Number,
+      required: true,
+      min: 0,
+    },
+
+    quantity: {
+      type: Number,
+      required: true,
+      min: 1,
+    },
+    itemTotal: {
+      type: Number,
+      required: true,
+      min: 0,
+    },
+
+    size: {
+      type: String,
+      trim: true,
+      default: null,
+    },
+
+    status: {
+      type: String,
+      enum: [
+        "pending",
+        "confirmed",
+        "processing",
+        "shipped",
+        "delivered",
+        "cancelled",
+      ],
+      default: "pending",
+      required: true,
+    },
+  },
+  { _id: true }
+);
 
 const orderSchema = new mongoose.Schema(
   {
@@ -8,52 +69,16 @@ const orderSchema = new mongoose.Schema(
       required: true,
     },
 
-    items: [
-      {
-        productId: {
-          type: mongoose.Schema.Types.ObjectId,
-          ref: "Product",
-          required: true,
-        },
-
-        sellerId: {
-          type: mongoose.Schema.Types.ObjectId,
-          ref: "User",
-          required: true,
-        },
-
-        name: {
-          type: String,
-          required: true,
-          trim: true,
-        },
-
-        price: {
-          type: Number,
-          required: true,
-          min: 0,
-        },
-
-        quantity: {
-          type: Number,
-          required: true,
-          min: 1,
-          validate: {
-            validator: Number.isInteger,
-            message: "Quantity must be an integer",
-          },
-        },
-
-        size: {
-          type: String,
-          trim: true,
-          default: null,
-        },
+    items: {
+      type: [orderItemSchema],
+      required: true,
+      validate: {
+        validator: (items) => items.length > 0,
+        message: "An order must contain at least one item",
       },
-    ],
+    },
 
     shippingAddress: {
-
       fullName: {
         type: String,
         required: true,
@@ -116,26 +141,7 @@ const orderSchema = new mongoose.Schema(
 
     paymentStatus: {
       type: String,
-      enum: [
-        "pending",
-        "processing",
-        "completed",
-        "failed",
-      ],
-      default: "pending",
-      required: true,
-    },
-
-    status: {
-      type: String,
-      enum: [
-        "pending",
-        "confirmed",
-        "processing",
-        "shipped",
-        "delivered",
-        "cancelled",
-      ],
+      enum: ["pending", "completed", "failed"],
       default: "pending",
       required: true,
     },
@@ -145,8 +151,8 @@ const orderSchema = new mongoose.Schema(
   }
 );
 
-orderSchema.index({
-  customerId: 1});
+orderSchema.index({ customerId: 1 });
+orderSchema.index({ "items.sellerId": 1, createdAt: -1 });
 
 const Order = mongoose.model("Order", orderSchema);
 

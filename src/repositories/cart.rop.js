@@ -127,6 +127,25 @@ class CartRepository {
     const cartCount = result[0]?.count ?? 0
     return cartCount
   }
+
+
+  static async getCartForOrder(userId, session) {
+  return Cart.findOne({ userId })
+    .session(session)
+    .lean()
+}
+
+static async clearCartForOrder(userId, session) {
+  return Cart.updateOne(
+    { userId },
+    { $set: { items: [] } },
+    { session }
+  )
+}
+
+
+
+
 }
 
 export default CartRepository
