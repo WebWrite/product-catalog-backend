@@ -1,9 +1,8 @@
 import mongoose from "mongoose";
 import AppError from "../utils/AppError.js";
 import { HTTP_STATUS } from "../constants/statusCodes.js";
-import { cancelPendingOrderItem, createOrder, createOrderStockHistory, decreaseStockForOrder, findCustomerOrder, findOrdersByCustomerId, findOrdersBySellerId, findProductsForOrder, findSellerOrderItem, restoreOrderItemStock, updateSellerOrderItemStatus } from "../repositories/order.repo.js";
+import OrderRepository from "../repositories/order.repo.js";
 import CartRepository from "../repositories/cart.rop.js";
-
 
 const SHIPPING_COST = 10;
 
@@ -35,8 +34,8 @@ const getProductSize = (product, requestedSize) => {
   return matchedSize;
 };
 
-
-export const createCodOrder = async (customerId, data) => {
+class OrderManager{ 
+static async createCodOrder(customerId, data){
   if (!mongoose.isObjectIdOrHexString(customerId)) {
     throw new AppError(
       "Invalid customer ID.",
@@ -59,7 +58,7 @@ export const createCodOrder = async (customerId, data) => {
       const cartItems = cart.items
       const productIds = cartItems.map((item) => item.productId)
 
-      const products = await findProductsForOrder(productIds, session)
+      const products = await OrderRepository.findProductsForOrder(productIds, session)
 
       const items = cartItems.map((cartItem) => {
         const product = products.find((product) => product._id.toString() === cartItem.productId.toString())
@@ -88,7 +87,7 @@ export const createCodOrder = async (customerId, data) => {
       const historyEntries = []
 
       for (const item of items) {
-        const product = await decreaseStockForOrder(
+        const product = await OrderRepository.decreaseStockForOrder(
           item.productId,
           item.quantity,
           session
@@ -109,7 +108,7 @@ export const createCodOrder = async (customerId, data) => {
 
       const subtotal = items.reduce((sum, item) => sum + item.itemTotal, 0)
 
-      const [order] = await createOrder(
+      const [order] = await OrderRepository.createOrder(
         {
           customerId,
           items,
@@ -126,7 +125,7 @@ export const createCodOrder = async (customerId, data) => {
         session
       )
 
-      await createOrderStockHistory(historyEntries, session)
+      await OrderRepository.createOrderStockHistory(historyEntries, session)
 
       const result = await CartRepository.clearCartForOrder(customerId, session)
 
@@ -143,21 +142,21 @@ export const createCodOrder = async (customerId, data) => {
 }
 
 
-export const getMyOrders = async (customerId) => {
-  return findOrdersByCustomerId(customerId)
+static async getMyOrders(customerId){
+  return OrderRepository.findOrdersByCustomerId(customerId)
 }
 
 
 
 
-export const cancelMyOrderItem = async (customerId, orderId, itemId) => {
+static async cancelMyOrderItem(customerId, orderId, itemId){
   const session = await mongoose.startSession()
 
   try {
-    let updatedOrder
+    let updatedOrder;
 
     await session.withTransaction(async () => {
-      const order = await findCustomerOrder(orderId, customerId, session)
+      const order = await OrderRepository.findCustomerOrder(orderId, customerId, session)
 
       if (!order) {
         throw new AppError("Order not found.", HTTP_STATUS.NOT_FOUND)
@@ -178,7 +177,7 @@ export const cancelMyOrderItem = async (customerId, orderId, itemId) => {
         )
       }
 
-      updatedOrder = await cancelPendingOrderItem(
+      updatedOrder = await OrderRepository.cancelPendingOrderItem(
         orderId,
         itemId,
         customerId,
@@ -192,7 +191,7 @@ export const cancelMyOrderItem = async (customerId, orderId, itemId) => {
         )
       }
 
-      await restoreOrderItemStock(item, session)
+      await OrderRepository.restoreOrderItemStock(item, session)
     })
     const cancelledItem = updatedOrder.items.find(
       (item) => item._id.toString() === itemId
@@ -208,19 +207,19 @@ export const cancelMyOrderItem = async (customerId, orderId, itemId) => {
   }
 }
 
-export const getMySellerOrders = async (sellerId) => {
-  return findOrdersBySellerId(sellerId);
+static async getMySellerOrders(sellerId){
+  return OrderRepository.findOrdersBySellerId(sellerId);
 };
 
 
-export const updateMySellerOrderItemStatus = async (sellerId,orderId,itemId, status) => {
+static async updateMySellerOrderItemStatus(sellerId,orderId,itemId, status){
   const session = await mongoose.startSession();
 
   try {
     let updatedOrder;
 
     await session.withTransaction(async () => {
-      const order = await findSellerOrderItem( orderId,  itemId, sellerId,session);
+      const order = await OrderRepository.findSellerOrderItem( orderId,  itemId, sellerId,session);
 
       if (!order) {
         throw new AppError( "Order item not found for this seller.",HTTP_STATUS.NOT_FOUND);
@@ -234,14 +233,14 @@ export const updateMySellerOrderItemStatus = async (sellerId,orderId,itemId, sta
         throw new AppError( `A ${item.status} item cannot be updated.`,HTTP_STATUS.BAD_REQUEST);
       }
 
-      updatedOrder = await updateSellerOrderItemStatus(orderId, itemId, sellerId,status,session);
+      updatedOrder = await OrderRepository.updateSellerOrderItemStatus(orderId, itemId, sellerId,status,session);
 
       if (!updatedOrder) {
         throw new AppError("Order item status could not be updated.",HTTP_STATUS.CONFLICT);
       }
 
       if (status === "cancelled") {
-        await restoreOrderItemStock(item, session);
+        await OrderRepository.restoreOrderItemStock(item, session);
       }
     });
 
@@ -257,3 +256,8 @@ export const updateMySellerOrderItemStatus = async (sellerId,orderId,itemId, sta
     await session.endSession();
   }
 };
+
+}
+
+
+export default OrderManager
