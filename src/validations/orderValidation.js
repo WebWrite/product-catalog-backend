@@ -24,3 +24,12 @@ export const createCodOrderSchema = Joi.object({
 })
   .required()
   .unknown(false)
+
+
+  export const updateSellerOrderItemStatusSchema = Joi.object({
+  orderId: Joi.string().hex().length(24).required(),
+  itemId: Joi.string().hex().length(24).required(),
+  status: Joi.string()
+    .valid("pending","confirmed", "processing", "shipped", "delivered", "cancelled")
+    .required(),
+}).required().unknown(false);

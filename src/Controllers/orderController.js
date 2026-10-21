@@ -1,6 +1,6 @@
 
 import { HTTP_STATUS } from '../constants/statusCodes.js';
-import { createCodOrder, getMyOrders } from '../managers/orderManager.js';
+import { cancelMyOrderItem, createCodOrder, getMyOrders, getMySellerOrders, updateMySellerOrderItemStatus } from '../managers/orderManager.js';
 import {asyncHandler} from '../utils/wrapasync.js'
 
 export const createOrder = asyncHandler(async (req, res) => {
@@ -45,6 +45,21 @@ export const getMySellerOrdersController = asyncHandler(
     return res.status(HTTP_STATUS.OK).json({
       success: true,
       data: { orders },
+    });
+  }
+);
+
+
+export const updateSellerOrderItemStatusController = asyncHandler(
+  async (req, res) => {
+    const { orderId, itemId, status } = req.body;
+
+    const order = await updateMySellerOrderItemStatus(req.user.id,orderId,itemId,status);
+
+    return res.status(HTTP_STATUS.OK).json({
+      success: true,
+      message: "Order item status updated successfully.",
+      data: { order },
     });
   }
 );

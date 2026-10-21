@@ -39,7 +39,10 @@ export const findOrdersByCustomerId = (customerId) =>
     .sort({ createdAt: -1 })
     .select(
       "_id items shippingAddress subtotal shippingCost total paymentMethod paymentStatus createdAt"
-    )
+    ).populate({
+      path: "items.productId",
+      select: "image.url",
+    })
     .lean()
 
 
@@ -93,6 +96,10 @@ export const restoreOrderItemStock = async (item, session) => {
 export const findOrdersBySellerId = async (sellerId) => {
   const orders = await Order.find({ "items.sellerId": sellerId })
     .select("_id items paymentMethod paymentStatus")
+     .populate({
+      path: "items.productId",
+      select: "image.url",
+    })
     .lean();
 
   return orders.map((order) => ({
@@ -102,3 +109,28 @@ export const findOrdersBySellerId = async (sellerId) => {
     ),
   }));
 };
+
+
+export const findSellerOrderItem = (orderId, itemId, sellerId, session) =>
+  Order.findOne({
+    _id: orderId,
+    items: {
+      $elemMatch: { _id: itemId, sellerId, },
+    },
+  }).session(session);
+
+
+export const updateSellerOrderItemStatus = (orderId,itemId,sellerId,status,session) =>
+  Order.findOneAndUpdate(
+    {
+      _id: orderId,
+      items: { $elemMatch: {_id: itemId, sellerId,status: { $nin: ["delivered", "cancelled"] },},
+      },
+    },
+    {
+      $set: { "items.$.status": status },
+    },
+    {
+      new: true,session, runValidators: true,
+    }
+  );

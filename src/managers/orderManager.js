@@ -1,38 +1,38 @@
 import mongoose from "mongoose";
 import AppError from "../utils/AppError.js";
 import { HTTP_STATUS } from "../constants/statusCodes.js";
-import { cancelPendingOrderItem, createOrder, createOrderStockHistory, decreaseStockForOrder, findCustomerOrder, findOrdersByCustomerId, findOrdersBySellerId, findProductsForOrder, restoreOrderItemStock } from "../repositories/order.repo.js";
+import { cancelPendingOrderItem, createOrder, createOrderStockHistory, decreaseStockForOrder, findCustomerOrder, findOrdersByCustomerId, findOrdersBySellerId, findProductsForOrder, findSellerOrderItem, restoreOrderItemStock, updateSellerOrderItemStatus } from "../repositories/order.repo.js";
 import CartRepository from "../repositories/cart.rop.js";
 
 
-const SHIPPING_COST = 10; 
+const SHIPPING_COST = 10;
 
 const getProductSize = (product, requestedSize) => {
-    const sizes = product.sizes ?? [];
+  const sizes = product.sizes ?? [];
 
-    if (sizes.length === 0) {
-        if (requestedSize) {
-            throw new AppError(
-                `${product.name} does not support sizes.`,
-                HTTP_STATUS.BAD_REQUEST
-            );
-        }
-
-        return null;
+  if (sizes.length === 0) {
+    if (requestedSize) {
+      throw new AppError(
+        `${product.name} does not support sizes.`,
+        HTTP_STATUS.BAD_REQUEST
+      );
     }
 
-    const matchedSize = sizes.find(
-        (size) => size.toLowerCase() === requestedSize?.toLowerCase()
+    return null;
+  }
+
+  const matchedSize = sizes.find(
+    (size) => size.toLowerCase() === requestedSize?.toLowerCase()
+  );
+
+  if (!matchedSize) {
+    throw new AppError(
+      `A valid size is required for ${product.name}.`,
+      HTTP_STATUS.BAD_REQUEST
     );
+  }
 
-    if (!matchedSize) {
-        throw new AppError(
-            `A valid size is required for ${product.name}.`,
-            HTTP_STATUS.BAD_REQUEST
-        );
-    }
-
-    return matchedSize;
+  return matchedSize;
 };
 
 
@@ -50,26 +50,26 @@ export const createCodOrder = async (customerId, data) => {
     let createdOrder
 
     await session.withTransaction(async () => {
-      const cart = await CartRepository.getCartForOrder(customerId,session )
+      const cart = await CartRepository.getCartForOrder(customerId, session)
 
       if (!cart?.items?.length) {
-        throw new AppError("Your cart is empty.",HTTP_STATUS.BAD_REQUEST )
+        throw new AppError("Your cart is empty.", HTTP_STATUS.BAD_REQUEST)
       }
 
       const cartItems = cart.items
       const productIds = cartItems.map((item) => item.productId)
 
-      const products = await findProductsForOrder(productIds,session)
+      const products = await findProductsForOrder(productIds, session)
 
       const items = cartItems.map((cartItem) => {
-        const product = products.find((product) =>product._id.toString() === cartItem.productId.toString())
+        const product = products.find((product) => product._id.toString() === cartItem.productId.toString())
 
         if (!product) {
-          throw new AppError("One or more cart products no longer exist.",HTTP_STATUS.NOT_FOUND)
+          throw new AppError("One or more cart products no longer exist.", HTTP_STATUS.NOT_FOUND)
         }
 
         if (product.status !== "active") {
-          throw new AppError(`${product.name} is not available.`,HTTP_STATUS.BAD_REQUEST)
+          throw new AppError(`${product.name} is not available.`, HTTP_STATUS.BAD_REQUEST)
         }
 
         return {
@@ -95,7 +95,7 @@ export const createCodOrder = async (customerId, data) => {
         )
 
         if (!product) {
-          throw new AppError(`Insufficient stock or unavailable product: ${item.name}.`,HTTP_STATUS.CONFLICT)
+          throw new AppError(`Insufficient stock or unavailable product: ${item.name}.`, HTTP_STATUS.CONFLICT)
         }
 
         historyEntries.push({
@@ -107,7 +107,7 @@ export const createCodOrder = async (customerId, data) => {
         })
       }
 
-      const subtotal = items.reduce((sum, item) => sum + item.itemTotal,0)
+      const subtotal = items.reduce((sum, item) => sum + item.itemTotal, 0)
 
       const [order] = await createOrder(
         {
@@ -128,10 +128,10 @@ export const createCodOrder = async (customerId, data) => {
 
       await createOrderStockHistory(historyEntries, session)
 
-      const result = await CartRepository.clearCartForOrder(customerId,session)
+      const result = await CartRepository.clearCartForOrder(customerId, session)
 
       if (result.matchedCount !== 1) {
-        throw new AppError("Unable to clear the cart.",HTTP_STATUS.CONFLICT)
+        throw new AppError("Unable to clear the cart.", HTTP_STATUS.CONFLICT)
       }
       createdOrder = order
     })
@@ -163,7 +163,9 @@ export const cancelMyOrderItem = async (customerId, orderId, itemId) => {
         throw new AppError("Order not found.", HTTP_STATUS.NOT_FOUND)
       }
 
-      const item = order.items.id(itemId)
+      const item = order.items.find(
+        (item) => item._id.toString() === itemId
+      )
 
       if (!item) {
         throw new AppError("Order item not found.", HTTP_STATUS.NOT_FOUND)
@@ -192,7 +194,15 @@ export const cancelMyOrderItem = async (customerId, orderId, itemId) => {
 
       await restoreOrderItemStock(item, session)
     })
-    return updatedOrder
+    const cancelledItem = updatedOrder.items.find(
+      (item) => item._id.toString() === itemId
+    );
+
+     return {
+      _id: updatedOrder._id,
+      shippingAddress: updatedOrder.shippingAddress,
+      items: [cancelledItem],
+    };
   } finally {
     await session.endSession()
   }
@@ -200,4 +210,50 @@ export const cancelMyOrderItem = async (customerId, orderId, itemId) => {
 
 export const getMySellerOrders = async (sellerId) => {
   return findOrdersBySellerId(sellerId);
+};
+
+
+export const updateMySellerOrderItemStatus = async (sellerId,orderId,itemId, status) => {
+  const session = await mongoose.startSession();
+
+  try {
+    let updatedOrder;
+
+    await session.withTransaction(async () => {
+      const order = await findSellerOrderItem( orderId,  itemId, sellerId,session);
+
+      if (!order) {
+        throw new AppError( "Order item not found for this seller.",HTTP_STATUS.NOT_FOUND);
+      }
+
+      const item = order.items.find(
+        (item) => item._id.toString() === itemId
+      );
+
+      if (["delivered", "cancelled"].includes(item.status)) {
+        throw new AppError( `A ${item.status} item cannot be updated.`,HTTP_STATUS.BAD_REQUEST);
+      }
+
+      updatedOrder = await updateSellerOrderItemStatus(orderId, itemId, sellerId,status,session);
+
+      if (!updatedOrder) {
+        throw new AppError("Order item status could not be updated.",HTTP_STATUS.CONFLICT);
+      }
+
+      if (status === "cancelled") {
+        await restoreOrderItemStock(item, session);
+      }
+    });
+
+    const updatedItem = updatedOrder.items.find(
+      (item) => item._id.toString() === itemId
+    );
+
+    return {
+      _id: updatedOrder._id,
+      items: [updatedItem],
+    };
+  } finally {
+    await session.endSession();
+  }
 };
