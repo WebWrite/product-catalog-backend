@@ -93,8 +93,8 @@ class OrderRepository {
         sellerId: item.sellerId,
         previousStock: product.stock - item.quantity,
         newStock: product.stock,
-        reason: "order",
-      },
+        reason: "order"
+      }
     ],
     { session }
   )
@@ -107,18 +107,17 @@ class OrderRepository {
     .select("_id items paymentMethod paymentStatus")
     .populate({
       path: "items.productId",
-      select: "image.url",
+      select: "image.url"
     })
-    .lean();
+    .lean()
 
   return orders.map((order) => ({
     ...order,
     items: order.items.filter(
       (item) => item.sellerId.toString() === sellerId.toString()
-    ),
-  }));
-};
-
+    )
+  }))
+}
 
   static findSellerOrderItem(orderId, itemId, sellerId, session){
   return Order.findOne({
@@ -138,7 +137,7 @@ class OrderRepository {
       },
     },
     {
-      $set: { "items.$.status": status },
+      $set: { "items.$.status": status }
     },
     {
       new: true, session, runValidators: true,

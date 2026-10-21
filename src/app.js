@@ -12,9 +12,11 @@ import authRoutes from "./Routes/auth.routes.js"
 import userRoutes from "./Routes/user.routes.js"
 import sellerRoutes from "./Routes/product.route.js"
 import cartRoutes from "./Routes/cart.routes.js"
-import orderRoutes from './Routes/order.routes.js'
+import orderRoutes from "./Routes/order.routes.js"
+import adminRoutes from "./Routes/admin.routes.js"
 import authorization from "./middlewares/authorization.middleware.js"
 import authentication from "./middlewares/authentication.middleware.js"
+import { supportedExtensions } from "file-type"
 
 //import userRoutes from "./Routes/user.routes.js"
 export const app = express()
@@ -45,7 +47,12 @@ app.use(
 )
 app.use(`${baseURL}`, sellerRoutes)
 app.use(`${baseURL}`, orderRoutes)
-
+app.use(
+  `${baseURL}/admin`,
+  authentication("accessToken", process.env.ACCESS_TOKEN_SECRET_KEY),
+  authorization("admin"),
+  adminRoutes
+)
 
 app.use(notFound)
 
