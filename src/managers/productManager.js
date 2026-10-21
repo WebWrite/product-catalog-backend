@@ -91,6 +91,7 @@ export const deleteProductManager = async (productId, ownerId) => {
   if (!product) {
     throw new AppError(ERROR_MESSAGES.PRODUCT_NOT_FOUND, HTTP_STATUS.NOT_FOUND)
   }
+  
   if (product.image?.publicId) {
     try {
       await deleteProductImage(product.image.publicId)

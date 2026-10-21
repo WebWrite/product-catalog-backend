@@ -12,6 +12,7 @@ import authRoutes from "./Routes/auth.routes.js"
 import userRoutes from "./Routes/user.routes.js"
 import sellerRoutes from "./Routes/product.route.js"
 import cartRoutes from "./Routes/cart.routes.js"
+import orderRoutes from './Routes/order.routes.js'
 import authorization from "./middlewares/authorization.middleware.js"
 import authentication from "./middlewares/authentication.middleware.js"
 
@@ -43,6 +44,8 @@ app.use(
   cartRoutes
 )
 app.use(`${baseURL}`, sellerRoutes)
+app.use(`${baseURL}`, orderRoutes)
+
 
 app.use(notFound)
 
