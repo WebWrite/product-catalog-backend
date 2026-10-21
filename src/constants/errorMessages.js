@@ -36,5 +36,6 @@ export const ERROR_MESSAGES = Object.freeze({
   LOW_STOCK: "Low stock",
   PRODUCT_NOT_FOUND: "Product not found or unavailable",
   CART_ITEM_NOT_FOUND: "Cart not found",
-  EMPTY_CART: "Empty Cart"
+  EMPTY_CART: "Empty Cart",
+  SELLER_NOT_FOUND: "Seller not found."
 })
