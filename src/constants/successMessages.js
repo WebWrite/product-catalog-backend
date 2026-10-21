@@ -23,5 +23,6 @@ export const SUCCESS_MESSAGES = Object.freeze({
 
   //Cart
   EMPTY_CART: "Your cart is empty",
-  CART_DELETED: "Your cart is deleted"
+  CART_DELETED: "Your cart is deleted",
+  PASSOWRD_CHANGE: "User password change"
 })

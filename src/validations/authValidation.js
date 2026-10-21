@@ -77,3 +77,16 @@ export const verifyLoginOtpSchema = Joi.object({
   abortEarly: false,
   allowUnknown: false
 })
+
+export const changePasswordSchema = Joi.object({
+  password: passwordSchema
+})
+
+export const UpdateUser = Joi.object({
+  name: Joi.string().trim().min(3).max(50).optional(),
+  email: Joi.string().trim().lowercase().email().optional(),
+  password: passwordSchema.optional(),
+  status: Joi.string().valid("active", "blocked", "suspended").optional()
+})
+  .min(1)
+  .options({ abortEarly: false, allowUnknown: false })
