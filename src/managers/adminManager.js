@@ -12,7 +12,7 @@ import {
   deleteProductImage,
   uploadProductImage
 } from "../utils/cloudinary.util.js"
-import { restoreOrderItemStock } from "../repositories/order.repo.js"
+import OrderRepository from "../repositories/order.repo.js"
 
 class AdminManager {
   static async getSummary() {
@@ -208,7 +208,7 @@ class AdminManager {
         }
 
         if (status === "cancelled") {
-          await restoreOrderItemStock(item, session)
+          await OrderRepository.restoreOrderItemStock(item, session)
         }
       })
 

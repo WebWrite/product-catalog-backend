@@ -1,5 +1,5 @@
 import { ERROR_MESSAGES } from "../constants/errorMessages.js"
-import UserRepository from "../repositories/user.rop.js"
+import UserRepository from "../repositories/user.repo.js"
 import bcrypt from "bcryptjs"
 import AppError from "./AppError.js"
 import { HTTP_STATUS } from "../constants/statusCodes.js"

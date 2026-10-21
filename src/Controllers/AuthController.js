@@ -29,7 +29,6 @@ class AuthController {
   }
 
   static async Logout(req, res) {
-    //invalidate refreshToken and clear cookies
     await UserManager.invalidateRefreshToken(req.cookies.refreshToken)
     AuthCookies.clearCookies(res)
     return res.status(HTTP_STATUS.OK).json({
@@ -37,7 +36,7 @@ class AuthController {
     })
   }
 
-  static async refreshToken(req, res, next) {
+  static async refreshToken(req, res) {
     const { accessToken, refreshToken } = await UserManager.updateRefreshToken(
       req.user
     )

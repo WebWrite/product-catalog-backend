@@ -1,7 +1,7 @@
 import { ERROR_MESSAGES } from "../constants/errorMessages.js"
 import { HTTP_STATUS } from "../constants/statusCodes.js"
 import Product from "../models/Product.js"
-import CartRepository from "../repositories/cart.rop.js"
+import CartRepository from "../repositories/cart.repo.js"
 import AppError from "../utils/AppError.js"
 
 class CartManager {

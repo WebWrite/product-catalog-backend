@@ -1,4 +1,4 @@
-import UserRepository from "../repositories/user.rop.js"
+import UserRepository from "../repositories/user.repo.js"
 import UserUtil from "../utils/user.util.js"
 import bcrypt from "bcryptjs"
 import Token from "../helpers/token.js"
@@ -7,7 +7,7 @@ import OtpUtils from "../utils/otp.util.js"
 import { ERROR_MESSAGES } from "../constants/errorMessages.js"
 import AppError from "../utils/AppError.js"
 import { HTTP_STATUS } from "../constants/statusCodes.js"
-import CartRepository from "../repositories/cart.rop.js"
+import CartRepository from "../repositories/cart.repo.js"
 class UserManager {
   static async registerUser(data, session) {
     let isUser = await UserUtil.findUserWitEmail(data.email)
