@@ -28,6 +28,14 @@ class AdminController {
     })
   }
 
+  static async getOrderSummary(req, res) {
+    const summary = await AdminManager.getOrderSummary()
+    return res.status(HTTP_STATUS.OK).json({
+      success: true,
+      summary
+    })
+  }
+
   static async findOrders(req, res) {
     const page = Math.max(parseInt(req.query.page) || 1, 1)
     const limit = Math.min(Math.max(parseInt(req.query.limit) || 5, 1), 50)
@@ -41,6 +49,15 @@ class AdminController {
     return res.status(HTTP_STATUS.OK).json({
       success: true,
       orders
+    })
+  }
+
+  static async findOrderById(req, res) {
+    const order = await AdminManager.findOrderById(req.params.id)
+
+    return res.status(HTTP_STATUS.OK).json({
+      success: true,
+      order
     })
   }
 

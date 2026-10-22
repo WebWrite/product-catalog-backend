@@ -17,6 +17,12 @@ router.get(
   "/dashboard/top-categories",
   asyncHandler(AdminController.getTopCategories)
 )
+router.get("/order-summary", asyncHandler(AdminController.getOrderSummary))
+router.get(
+  "/order/:id",
+  validateObjectId,
+  asyncHandler(AdminController.findOrderById)
+)
 router.get("/orders", asyncHandler(AdminController.findOrders))
 router.get("/products/summary", asyncHandler(AdminController.productSummary))
 

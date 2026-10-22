@@ -35,6 +35,55 @@ class AdminRepository {
     return await User.countDocuments({ role: "customer" })
   }
 
+  static async orderSummary() {
+    const now = new Date()
+    const currentMonthStart = new Date(
+      Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1)
+    )
+    const previousMonthStart = new Date(
+      Date.UTC(now.getUTCFullYear(), now.getUTCMonth() - 1, 1)
+    )
+
+    const [result] = await Order.aggregate([
+      {
+        $facet: {
+          totalOrders: [{ $count: "count" }],
+          inTransit: [
+            { $match: { "items.status": "shipped" } },
+            { $count: "count" }
+          ],
+          deliveredOrders: [
+            { $match: { "items.status": "delivered" } },
+            { $count: "count" }
+          ],
+          lastMonthSubtotal: [
+            {
+              $match: {
+                createdAt: {
+                  $gte: previousMonthStart,
+                  $lt: currentMonthStart
+                }
+              }
+            },
+            {
+              $group: {
+                _id: null,
+                subtotal: { $sum: "$subtotal" }
+              }
+            }
+          ]
+        }
+      }
+    ])
+
+    return {
+      totalOrders: result.totalOrders[0]?.count ?? 0,
+      inTransit: result.inTransit[0]?.count ?? 0,
+      deliveredOrders: result.deliveredOrders[0]?.count ?? 0,
+      lastMonthSubtotal: result.lastMonthSubtotal[0]?.subtotal ?? 0
+    }
+  }
+
   static async revenueByDay() {
     const since = new Date()
     since.setDate(since.getDate() - 29)
@@ -148,6 +197,13 @@ class AdminRepository {
     ])
 
     return { orders, total }
+  }
+
+  static async findOrderById(orderId) {
+    return await Order.findById(orderId)
+      .populate("customerId", "name email")
+      .populate("items.productId", "name image price")
+      .populate("items.sellerId", "name email")
   }
 
   static async productSummary() {
