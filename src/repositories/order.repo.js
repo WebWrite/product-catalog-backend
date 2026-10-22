@@ -152,6 +152,17 @@ class OrderRepository {
       }
     )
   }
+
+  static updateOrderPaymentStatus(orderId, paymentStatus) {
+  return Order.findOneAndUpdate(
+    {_id: orderId,  paymentMethod: "STRIPE",},
+    { $set: { paymentStatus } },
+    { new: true, runValidators: true }
+  );
+}
+
+
+
 }
 
 export default OrderRepository

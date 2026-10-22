@@ -14,6 +14,7 @@ import sellerRoutes from "./Routes/product.route.js"
 import cartRoutes from "./Routes/cart.routes.js"
 import orderRoutes from "./Routes/order.routes.js"
 import adminRoutes from "./Routes/admin.routes.js"
+import stripeWebHookRoutes from './Routes/stripewebhook.routes.js'
 import authorization from "./middlewares/authorization.middleware.js"
 import authentication from "./middlewares/authentication.middleware.js"
 import { supportedExtensions } from "file-type"
@@ -30,6 +31,9 @@ app.use(
 )
 
 app.use(cookieParser())
+
+app.use( `${baseURL}`,stripeWebHookRoutes)
+
 app.use(express.json())
 
 const swaggerDocs = swaggerJsdoc(swaggerOptions)
