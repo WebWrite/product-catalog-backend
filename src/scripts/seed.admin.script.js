@@ -1,7 +1,7 @@
 import "dotenv/config"
 import { connectDB } from "../config/database.config.js"
-import UserRepository from "../repositories/user.rop.js"
 import bcrypt from "bcryptjs"
+import UserRepository from "../repositories/user.repo.js"
 
 const seedAdmin = async () => {
   try {
