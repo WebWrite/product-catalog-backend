@@ -33,6 +33,18 @@ class AdminManager {
     return await AdminRepository.SalesByCategory()
   }
 
+  static async getOrderSummary() {
+    return await AdminRepository.orderSummary()
+  }
+
+  static async getCustomerSummary() {
+    return await AdminRepository.customerSummary()
+  }
+
+  static async getSellerSummary() {
+    return await AdminRepository.sellerSummary()
+  }
+
   static async findOrder({ filter, page, limit }) {
     const skip = (page - 1) * limit
 
@@ -46,6 +58,19 @@ class AdminManager {
       orders,
       pagination: { page, limit, total, totalPages: Math.ceil(total / limit) }
     }
+  }
+
+  static async findOrderById(orderId) {
+    const order = await AdminRepository.findOrderById(orderId)
+
+    if (!order) {
+      throw new AppError(
+        ERROR_MESSAGES.RESOURCE_NOT_FOUND,
+        HTTP_STATUS.NOT_FOUND
+      )
+    }
+
+    return order
   }
 
   static async getProductsSummary() {

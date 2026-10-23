@@ -35,6 +35,134 @@ class AdminRepository {
     return await User.countDocuments({ role: "customer" })
   }
 
+  static async orderSummary() {
+    const now = new Date()
+    const currentMonthStart = new Date(
+      Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1)
+    )
+    const previousMonthStart = new Date(
+      Date.UTC(now.getUTCFullYear(), now.getUTCMonth() - 1, 1)
+    )
+
+    const [result] = await Order.aggregate([
+      {
+        $facet: {
+          totalOrders: [{ $count: "count" }],
+          inTransit: [
+            { $match: { "items.status": "shipped" } },
+            { $count: "count" }
+          ],
+          deliveredOrders: [
+            { $match: { "items.status": "delivered" } },
+            { $count: "count" }
+          ],
+          lastMonthSubtotal: [
+            {
+              $match: {
+                createdAt: {
+                  $gte: previousMonthStart,
+                  $lt: currentMonthStart
+                }
+              }
+            },
+            {
+              $group: {
+                _id: null,
+                subtotal: { $sum: "$subtotal" }
+              }
+            }
+          ]
+        }
+      }
+    ])
+
+    return {
+      totalOrders: result.totalOrders[0]?.count ?? 0,
+      inTransit: result.inTransit[0]?.count ?? 0,
+      deliveredOrders: result.deliveredOrders[0]?.count ?? 0,
+      lastMonthSubtotal: result.lastMonthSubtotal[0]?.subtotal ?? 0
+    }
+  }
+
+  static async customerSummary() {
+    const [customerCounts, orderSummary] = await Promise.all([
+      User.aggregate([
+        { $match: { role: "customer" } },
+        {
+          $group: {
+            _id: null,
+            totalCustomers: { $sum: 1 },
+            activeCustomers: {
+              $sum: { $cond: [{ $eq: ["$status", "active"] }, 1, 0] }
+            }
+          }
+        }
+      ]),
+      Order.aggregate([
+        { $unwind: "$items" },
+        { $match: { "items.status": { $ne: "cancelled" } } },
+        {
+          $group: {
+            _id: "$customerId",
+            orderCount: { $addToSet: "$_id" },
+            totalSpend: { $sum: "$items.itemTotal" }
+          }
+        },
+        {
+          $group: {
+            _id: null,
+            repeatBuyers: {
+              $sum: {
+                $cond: [{ $gt: [{ $size: "$orderCount" }, 1] }, 1, 0]
+              }
+            },
+            totalSpend: { $sum: "$totalSpend" }
+          }
+        }
+      ])
+    ])
+
+    return {
+      totalCustomers: customerCounts[0]?.totalCustomers ?? 0,
+      activeCustomers: customerCounts[0]?.activeCustomers ?? 0,
+      repeatBuyers: orderSummary[0]?.repeatBuyers ?? 0,
+      totalSpend: orderSummary[0]?.totalSpend ?? 0
+    }
+  }
+
+  static async sellerSummary() {
+    const [sellerCounts, gmvSummary] = await Promise.all([
+      User.aggregate([
+        { $match: { role: "seller" } },
+        {
+          $group: {
+            _id: null,
+            totalSellers: { $sum: 1 },
+            activeSellers: {
+              $sum: { $cond: [{ $eq: ["$status", "active"] }, 1, 0] }
+            }
+          }
+        }
+      ]),
+      Order.aggregate([
+        { $unwind: "$items" },
+        { $match: { "items.status": { $ne: "cancelled" } } },
+        {
+          $group: {
+            _id: null,
+            gmv: { $sum: "$items.itemTotal" }
+          }
+        }
+      ])
+    ])
+
+    return {
+      totalSellers: sellerCounts[0]?.totalSellers ?? 0,
+      activeSellers: sellerCounts[0]?.activeSellers ?? 0,
+      gmv: gmvSummary[0]?.gmv ?? 0
+    }
+  }
+
   static async revenueByDay() {
     const since = new Date()
     since.setDate(since.getDate() - 29)
@@ -148,6 +276,13 @@ class AdminRepository {
     ])
 
     return { orders, total }
+  }
+
+  static async findOrderById(orderId) {
+    return await Order.findById(orderId)
+      .populate("customerId", "name email")
+      .populate("items.productId", "name image price")
+      .populate("items.sellerId", "name email")
   }
 
   static async productSummary() {
