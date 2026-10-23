@@ -1,4 +1,5 @@
-import mongoose from "mongoose";
+
+import mongoose from "mongoose"
 
 const paymentSchema = new mongoose.Schema(
   {
@@ -22,12 +23,6 @@ const paymentSchema = new mongoose.Schema(
       trim: true,
     },
 
-    paymentIntentId: {
-      type: String,
-      trim: true,
-      default: null,
-    },
-
     amount: {
       type: Number,
       required: true,
@@ -45,32 +40,19 @@ const paymentSchema = new mongoose.Schema(
 
     status: {
       type: String,
-      enum: [
-        "pending",
-        "processing",
-        "completed",
-        "failed",
-        "unknown",
-      ],
+      enum: ["pending", "processing", "completed", "failed", "unknown"],
       default: "pending",
       required: true,
     },
   },
   {
-    timestamps: true
+    timestamps: true,
   }
-);
+)
 
-paymentSchema.index(
-  { orderId: 1 },
-  { unique: true }
-);
 
-paymentSchema.index(
-  { sessionId: 1 },
-  { unique: true }
-);
 
-const Payment = mongoose.model("Payment", paymentSchema);
 
-export default Payment;
+const Payment = mongoose.model("Payment", paymentSchema)
+
+export default Payment
