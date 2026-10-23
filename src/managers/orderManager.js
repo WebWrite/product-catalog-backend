@@ -208,6 +208,7 @@ class OrderManager {
 
         await OrderRepository.restoreOrderItemStock(item, session)
       })
+      
       const cancelledItem = updatedOrder.items.find(
         (item) => item._id.toString() === itemId
       )
@@ -255,8 +256,7 @@ class OrderManager {
         const item = order.items.find((item) => item._id.toString() === itemId)
 
         if (["delivered", "cancelled"].includes(item.status)) {
-          throw new AppError(
-            `A ${item.status} item cannot be updated.`,
+          throw new AppError( `A ${item.status} item cannot be updated.`,
             HTTP_STATUS.BAD_REQUEST
           )
         }
@@ -504,7 +504,7 @@ static async handleStripeWebhook(rawBody, signature) {
     throw new AppError("Payment not found.", HTTP_STATUS.NOT_FOUND);
   }
 
-  await PaymentRepository.updatePaymentBySessionId(session.id, {status,});
+  await PaymentRepository.updatePaymentBySessionId(session.id, {status});
 
   await OrderRepository.updateOrderPaymentStatus( payment.orderId,status);
 }

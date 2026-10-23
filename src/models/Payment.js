@@ -23,12 +23,6 @@ const paymentSchema = new mongoose.Schema(
       trim: true,
     },
 
-    paymentIntentId: {
-      type: String,
-      trim: true,
-      default: null,
-    },
-
     amount: {
       type: Number,
       required: true,

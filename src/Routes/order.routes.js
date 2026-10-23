@@ -17,7 +17,7 @@ router.patch("/orders/cancel-item",authentication("accessToken", process.env.ACC
 
 router.post("/orders/stripe",authentication("accessToken", process.env.ACCESS_TOKEN_SECRET_KEY),allowedRoles("customer"),validate(createCodOrderSchema),asyncHandler(OrderController.placeOrderStripe));
 
-router.post("/orders/stripe/webhook",express.raw({ type: "application/json" }),asyncHandler(OrderController.handleStripeWebhook));
+//router.post("/orders/stripe/webhook",express.raw({ type: "application/json" }),asyncHandler(OrderController.handleStripeWebhook));
 //seller orders
 router.get("/seller/orders",authentication("accessToken", process.env.ACCESS_TOKEN_SECRET_KEY),allowedRoles("seller"),asyncHandler(OrderController.getMySellerOrdersController ))
 router.patch("/seller/orders/item-status",authentication("accessToken", process.env.ACCESS_TOKEN_SECRET_KEY),allowedRoles("seller"),validate(updateSellerOrderItemStatusSchema),asyncHandler(OrderController.updateSellerOrderItemStatusController));
