@@ -498,6 +498,65 @@ class OrderManager {
 
     await OrderRepository.updateOrderPaymentStatus(payment.orderId, status)
   }
+
+  static async retryStripePayment(customerId, orderId) {
+    if (!mongoose.isValidObjectId(orderId)) {
+      throw new AppError("Invalid order ID.", HTTP_STATUS.BAD_REQUEST)
+    }
+
+    const order = await OrderRepository.findCustomerOrder(orderId, customerId)
+
+    if (!order) {
+      throw new AppError("Order not found.", HTTP_STATUS.NOT_FOUND)
+    }
+
+    if (order.paymentMethod !== "STRIPE") {
+      throw new AppError(
+        "This order does not use Stripe.",
+        HTTP_STATUS.BAD_REQUEST
+      )
+    }
+
+    if (order.paymentStatus === "completed") {
+      throw new AppError(
+        "This order has already been paid.",
+        HTTP_STATUS.CONFLICT
+      )
+    }
+
+    if (order.paymentStatus !== "pending" && order.paymentStatus !== "failed") {
+      throw new AppError(
+        "Payment cannot be retried for this order.",
+        HTTP_STATUS.CONFLICT
+      )
+    }
+
+    const lineItems = order.items.map((item) => ({
+      price_data: {
+        currency: "pkr",
+        product_data: {
+          name: item.name
+        },
+        unit_amount: Math.round(item.price * 100)
+      },
+      quantity: item.quantity
+    }))
+
+    const checkoutSession = await stripe.checkout.sessions.create({
+      mode: "payment",
+      line_items: lineItems,
+      success_url: `${process.env.FRONTEND_URL}/orders/success?orderId=${order._id}`,
+      cancel_url: `${process.env.FRONTEND_URL}/orders`,
+      metadata: {
+        orderId: order._id.toString()
+      }
+    })
+
+    return {
+      orderId: order._id,
+      checkoutUrl: checkoutSession.url
+    }
+  }
 }
 
 export default OrderManager
