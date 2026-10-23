@@ -37,6 +37,14 @@ class AdminManager {
     return await AdminRepository.orderSummary()
   }
 
+  static async getCustomerSummary() {
+    return await AdminRepository.customerSummary()
+  }
+
+  static async getSellerSummary() {
+    return await AdminRepository.sellerSummary()
+  }
+
   static async findOrder({ filter, page, limit }) {
     const skip = (page - 1) * limit
 

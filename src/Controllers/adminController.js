@@ -36,6 +36,22 @@ class AdminController {
     })
   }
 
+  static async getCustomerSummary(req, res) {
+    const summary = await AdminManager.getCustomerSummary()
+    return res.status(HTTP_STATUS.OK).json({
+      success: true,
+      summary
+    })
+  }
+
+  static async getSellerSummary(req, res) {
+    const summary = await AdminManager.getSellerSummary()
+    return res.status(HTTP_STATUS.OK).json({
+      success: true,
+      summary
+    })
+  }
+
   static async findOrders(req, res) {
     const page = Math.max(parseInt(req.query.page) || 1, 1)
     const limit = Math.min(Math.max(parseInt(req.query.limit) || 5, 1), 50)

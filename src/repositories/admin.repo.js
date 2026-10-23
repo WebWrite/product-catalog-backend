@@ -84,6 +84,85 @@ class AdminRepository {
     }
   }
 
+  static async customerSummary() {
+    const [customerCounts, orderSummary] = await Promise.all([
+      User.aggregate([
+        { $match: { role: "customer" } },
+        {
+          $group: {
+            _id: null,
+            totalCustomers: { $sum: 1 },
+            activeCustomers: {
+              $sum: { $cond: [{ $eq: ["$status", "active"] }, 1, 0] }
+            }
+          }
+        }
+      ]),
+      Order.aggregate([
+        { $unwind: "$items" },
+        { $match: { "items.status": { $ne: "cancelled" } } },
+        {
+          $group: {
+            _id: "$customerId",
+            orderCount: { $addToSet: "$_id" },
+            totalSpend: { $sum: "$items.itemTotal" }
+          }
+        },
+        {
+          $group: {
+            _id: null,
+            repeatBuyers: {
+              $sum: {
+                $cond: [{ $gt: [{ $size: "$orderCount" }, 1] }, 1, 0]
+              }
+            },
+            totalSpend: { $sum: "$totalSpend" }
+          }
+        }
+      ])
+    ])
+
+    return {
+      totalCustomers: customerCounts[0]?.totalCustomers ?? 0,
+      activeCustomers: customerCounts[0]?.activeCustomers ?? 0,
+      repeatBuyers: orderSummary[0]?.repeatBuyers ?? 0,
+      totalSpend: orderSummary[0]?.totalSpend ?? 0
+    }
+  }
+
+  static async sellerSummary() {
+    const [sellerCounts, gmvSummary] = await Promise.all([
+      User.aggregate([
+        { $match: { role: "seller" } },
+        {
+          $group: {
+            _id: null,
+            totalSellers: { $sum: 1 },
+            activeSellers: {
+              $sum: { $cond: [{ $eq: ["$status", "active"] }, 1, 0] }
+            }
+          }
+        }
+      ]),
+      Order.aggregate([
+        { $unwind: "$items" },
+        { $match: { "items.status": { $ne: "cancelled" } } },
+        {
+          $group: {
+            _id: null,
+            gmv: { $sum: "$items.itemTotal" }
+          }
+        }
+      ])
+    ])
+
+    return {
+      totalSellers: sellerCounts[0]?.totalSellers ?? 0,
+      activeSellers: sellerCounts[0]?.activeSellers ?? 0,
+      gmv: gmvSummary[0]?.gmv ?? 0
+    }
+  }
+
   static async revenueByDay() {
     const since = new Date()
     since.setDate(since.getDate() - 29)

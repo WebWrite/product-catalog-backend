@@ -19,6 +19,11 @@ router.get(
 )
 router.get("/order-summary", asyncHandler(AdminController.getOrderSummary))
 router.get(
+  "/customer-summary",
+  asyncHandler(AdminController.getCustomerSummary)
+)
+router.get("/seller-summary", asyncHandler(AdminController.getSellerSummary))
+router.get(
   "/order/:id",
   validateObjectId,
   asyncHandler(AdminController.findOrderById)
