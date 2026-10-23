@@ -9,7 +9,7 @@ class Token {
     const token = jwt.sign(payload, secret, { expiresIn: "15m" })
     return token
   }
-  
+
   static getRefreshToken(id, role) {
     const payload = { id: id, role: role }
     const secret = process.env.REFRESH_TOKEN_SECRET_KEY

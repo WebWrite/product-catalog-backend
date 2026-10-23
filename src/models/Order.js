@@ -1,47 +1,46 @@
-
-import mongoose from "mongoose";
+import mongoose from "mongoose"
 
 const orderItemSchema = new mongoose.Schema(
   {
     productId: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "Product",
-      required: true,
+      required: true
     },
 
     sellerId: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "User",
-      required: true,
+      required: true
     },
 
     name: {
       type: String,
       required: true,
-      trim: true,
+      trim: true
     },
 
     price: {
       type: Number,
       required: true,
-      min: 0,
+      min: 0
     },
 
     quantity: {
       type: Number,
       required: true,
-      min: 1,
+      min: 1
     },
     itemTotal: {
       type: Number,
       required: true,
-      min: 0,
+      min: 0
     },
 
     size: {
       type: String,
       trim: true,
-      default: null,
+      default: null
     },
 
     status: {
@@ -52,21 +51,21 @@ const orderItemSchema = new mongoose.Schema(
         "processing",
         "shipped",
         "delivered",
-        "cancelled",
+        "cancelled"
       ],
       default: "pending",
-      required: true,
-    },
+      required: true
+    }
   },
   { _id: true }
-);
+)
 
 const orderSchema = new mongoose.Schema(
   {
     customerId: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "User",
-      required: true,
+      required: true
     },
 
     items: {
@@ -74,8 +73,8 @@ const orderSchema = new mongoose.Schema(
       required: true,
       validate: {
         validator: (items) => items.length > 0,
-        message: "An order must contain at least one item",
-      },
+        message: "An order must contain at least one item"
+      }
     },
 
     shippingAddress: {
@@ -83,77 +82,77 @@ const orderSchema = new mongoose.Schema(
         type: String,
         required: true,
         trim: true,
-        maxlength: 100,
+        maxlength: 100
       },
 
       phone: {
         type: String,
         required: true,
         trim: true,
-        maxlength: 30,
+        maxlength: 30
       },
 
       address: {
         type: String,
         required: true,
         trim: true,
-        maxlength: 500,
+        maxlength: 500
       },
 
       city: {
         type: String,
         required: true,
         trim: true,
-        maxlength: 100,
+        maxlength: 100
       },
 
       postalCode: {
         type: String,
         required: true,
         trim: true,
-        maxlength: 20,
-      },
+        maxlength: 20
+      }
     },
 
     subtotal: {
       type: Number,
       required: true,
-      min: 0,
+      min: 0
     },
 
     shippingCost: {
       type: Number,
       required: true,
-      min: 0,
+      min: 0
     },
 
     total: {
       type: Number,
       required: true,
-      min: 0,
+      min: 0
     },
 
     paymentMethod: {
       type: String,
       enum: ["STRIPE", "COD"],
-      required: true,
+      required: true
     },
 
     paymentStatus: {
       type: String,
       enum: ["pending", "completed", "failed"],
       default: "pending",
-      required: true,
-    },
+      required: true
+    }
   },
   {
-    timestamps: true,
+    timestamps: true
   }
-);
+)
 
-orderSchema.index({ customerId: 1 });
-orderSchema.index({ "items.sellerId": 1, createdAt: -1 });
+orderSchema.index({ customerId: 1 })
+orderSchema.index({ "items.sellerId": 1, createdAt: -1 })
 
-const Order = mongoose.model("Order", orderSchema);
+const Order = mongoose.model("Order", orderSchema)
 
-export default Order;
+export default Order

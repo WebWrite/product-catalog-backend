@@ -1,4 +1,3 @@
-
 import mongoose from "mongoose"
 
 const paymentSchema = new mongoose.Schema(
@@ -7,26 +6,26 @@ const paymentSchema = new mongoose.Schema(
       type: mongoose.Schema.Types.ObjectId,
       ref: "Order",
       required: true,
-      unique: true,
+      unique: true
     },
 
     provider: {
       type: String,
       enum: ["stripe"],
-      required: true,
+      required: true
     },
 
     sessionId: {
       type: String,
       required: true,
       unique: true,
-      trim: true,
+      trim: true
     },
 
     amount: {
       type: Number,
       required: true,
-      min: 0,
+      min: 0
     },
 
     currency: {
@@ -35,23 +34,20 @@ const paymentSchema = new mongoose.Schema(
       uppercase: true,
       trim: true,
       minlength: 3,
-      maxlength: 3,
+      maxlength: 3
     },
 
     status: {
       type: String,
       enum: ["pending", "processing", "completed", "failed", "unknown"],
       default: "pending",
-      required: true,
-    },
+      required: true
+    }
   },
   {
-    timestamps: true,
+    timestamps: true
   }
 )
-
-
-
 
 const Payment = mongoose.model("Payment", paymentSchema)
 

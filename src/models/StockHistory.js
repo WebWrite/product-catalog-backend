@@ -1,19 +1,18 @@
-import mongoose from "mongoose";
+import mongoose from "mongoose"
 
 const stockHistorySchema = new mongoose.Schema(
   {
     productId: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "Product",
-      required: true,
+      required: true
     },
 
     sellerId: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "User",
-      required: true,
+      required: true
     },
-
 
     previousStock: {
       type: Number,
@@ -31,19 +30,18 @@ const stockHistorySchema = new mongoose.Schema(
         "restock",
         "order",
         "order_cancelled",
-        "manual_adjustment",
+        "manual_adjustment"
       ],
-      default: "manual_adjustment",
-    },
-
+      default: "manual_adjustment"
+    }
   },
   {
     timestamps: true
   }
-);
+)
 
-stockHistorySchema.index({ productId: 1 });
+stockHistorySchema.index({ productId: 1 })
 
-const StockHistory = mongoose.model("StockHistory", stockHistorySchema);
+const StockHistory = mongoose.model("StockHistory", stockHistorySchema)
 
-export default StockHistory;
+export default StockHistory

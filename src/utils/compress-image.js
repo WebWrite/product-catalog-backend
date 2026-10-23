@@ -1,5 +1,4 @@
-
-import sharp from "sharp";
+import sharp from "sharp"
 
 export const compressProductImage = async (buffer) => {
   return sharp(buffer)
@@ -8,8 +7,8 @@ export const compressProductImage = async (buffer) => {
       width: 1280,
       height: 1280,
       fit: "inside",
-      withoutEnlargement: true,
+      withoutEnlargement: true
     })
     .webp({ quality: 78 })
-    .toBuffer();  
-};
+    .toBuffer()
+}

@@ -5,25 +5,24 @@ export const createProduct = async (data) => {
   return Product.create(data)
 }
 
-export const findProductsBySellerId = (sellerId, filter,sort,skip,limit) => {
+export const findProductsBySellerId = (sellerId, filter, sort, skip, limit) => {
   return Product.find({ sellerId, ...filter })
     .sort(sort)
     .skip(skip)
     .limit(limit)
-    .lean();
-};
+    .lean()
+}
 export const countSellerProducts = (sellerId, filter) => {
-  return Product.countDocuments({ sellerId, ...filter });
-};
+  return Product.countDocuments({ sellerId, ...filter })
+}
 export const getSellerProductStats = async (sellerId) => {
   const [totalProducts, activeProducts] = await Promise.all([
     Product.countDocuments({ sellerId }),
-    Product.countDocuments({ sellerId, status: "active" }),
-  ]);
+    Product.countDocuments({ sellerId, status: "active" })
+  ])
 
-  return { totalProducts, activeProducts };
-};
-
+  return { totalProducts, activeProducts }
+}
 
 export const findProductById = async (productId) => {
   return Product.findById(productId)

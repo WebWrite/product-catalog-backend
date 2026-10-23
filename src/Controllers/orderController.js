@@ -2,7 +2,6 @@ import { HTTP_STATUS } from "../constants/statusCodes.js"
 import OrderManager from "../managers/orderManager.js"
 
 class OrderController {
-
   static async createOrder(req, res) {
     const order = await OrderManager.createCodOrder(req.user.id, req.body)
 
@@ -64,26 +63,27 @@ class OrderController {
     })
   }
 
-
-
   static async placeOrderStripe(req, res) {
-  const result = await OrderManager.createStripeCheckout(req.user.id,req.body)
+    const result = await OrderManager.createStripeCheckout(
+      req.user.id,
+      req.body
+    )
 
-  return res.status(HTTP_STATUS.CREATED).json({
-    success: true,
-    message: "Stripe Checkout Session created successfully.",
-    data: result,
-  })
-}
+    return res.status(HTTP_STATUS.CREATED).json({
+      success: true,
+      message: "Stripe Checkout Session created successfully.",
+      data: result
+    })
+  }
 
-static async handleStripeWebhook(req, res) {
-  
-  await OrderManager.handleStripeWebhook(req.body,req.headers["stripe-signature"]);
+  static async handleStripeWebhook(req, res) {
+    await OrderManager.handleStripeWebhook(
+      req.body,
+      req.headers["stripe-signature"]
+    )
 
-  return res.status(200).send("Webhook received");
-}
-
-
+    return res.status(200).send("Webhook received")
+  }
 }
 
 export default OrderController

@@ -1,46 +1,46 @@
-import mongoose from "mongoose";
+import mongoose from "mongoose"
 
 const conversationSchema = new mongoose.Schema(
   {
     type: {
       type: String,
       enum: ["admin", "buyer_seller"],
-      required: true,
+      required: true
     },
 
     participants: [
       {
         type: mongoose.Schema.Types.ObjectId,
         ref: "User",
-        required: true,
-      },
+        required: true
+      }
     ],
 
     lastMessageId: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "Message",
-      default: null,
+      default: null
     },
 
     lastMessage: {
       type: String,
       trim: true,
       maxlength: 1000,
-      default: null,
+      default: null
     },
 
     lastMessageAt: {
       type: Date,
-      default: null,
-    },
+      default: null
+    }
   },
   {
-    timestamps: true,
+    timestamps: true
   }
-);
+)
 
-conversationSchema.index({participants: 1});
+conversationSchema.index({ participants: 1 })
 
-const Conversation = mongoose.model( "Conversation", conversationSchema);
+const Conversation = mongoose.model("Conversation", conversationSchema)
 
-export default Conversation;
+export default Conversation

@@ -36,14 +36,20 @@ export const addProduct = async (req, res) => {
 }
 
 export const getSellerProducts = async (req, res) => {
-  const {category, search, sortBy = "newest",} = req.query;
+  const { category, search, sortBy = "newest" } = req.query
 
-  const page = Math.max(1, Number(req.query.page) || 1);
-  const limit = Math.min(50,Math.max(1, Number(req.query.limit) || 10));
+  const page = Math.max(1, Number(req.query.page) || 1)
+  const limit = Math.min(50, Math.max(1, Number(req.query.limit) || 10))
 
-  const result = await getSellerProductsManager(req.user.id, {category,search,sortBy,page,limit,});
+  const result = await getSellerProductsManager(req.user.id, {
+    category,
+    search,
+    sortBy,
+    page,
+    limit
+  })
 
-  const { products, total, totalPages } = result;
+  const { products, total, totalPages } = result
 
   return res.status(HTTP_STATUS.OK).json({
     success: true,
@@ -55,20 +61,19 @@ export const getSellerProducts = async (req, res) => {
       page,
       limit,
       total,
-      totalPages,
-    },
-  });
-};
+      totalPages
+    }
+  })
+}
 
 export const getSellerProductStats = async (req, res) => {
-  const stats = await getSellerProductStatsManager(req.user.id);
+  const stats = await getSellerProductStatsManager(req.user.id)
 
   return res.status(HTTP_STATUS.OK).json({
     success: true,
-    data: stats,
-  });
-};
-
+    data: stats
+  })
+}
 
 export const deleteProduct = async (req, res) => {
   const product = await deleteProductManager(req.params.id, req.user.id)

@@ -31,8 +31,7 @@ export const createProductSchema = Joi.object({
     "any.required": "Description is required."
   }),
 
-  price: Joi.number().integer().min(1).max(1000000).required()
-  .messages({
+  price: Joi.number().integer().min(1).max(1000000).required().messages({
     "number.base": "Price must be a number.",
     "number.integer": "Price must be a whole number.",
     "number.min": "Price must be at least 1.",

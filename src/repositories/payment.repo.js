@@ -1,7 +1,6 @@
 import Payment from "../models/Payment.js"
 
 class PaymentRepository {
-
   static findByOrderId(orderId) {
     return Payment.findOne({ orderId }).lean()
   }
@@ -20,23 +19,9 @@ class PaymentRepository {
       { $set: updates },
       {
         new: true,
-        runValidators: true,
+        runValidators: true
       }
     )
-  }
-
-
-
-   static findBySessionId(sessionId) {
-    return Payment.findOne({ sessionId }).lean();
-  }
-
-  static updatePaymentBySessionId(sessionId, updates) {
-    return Payment.findOneAndUpdate(
-      { sessionId },
-      { $set: updates },
-      { new: true, runValidators: true }
-    );
   }
 }
 

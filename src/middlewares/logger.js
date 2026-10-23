@@ -2,7 +2,6 @@ import { randomUUID } from "crypto"
 import logger from "../config/logger.js"
 
 const requestLogger = (req, res, next) => {
-
   const requestId = req.get("X-Request-ID") || randomUUID()
 
   req.requestId = requestId
@@ -26,4 +25,3 @@ const requestLogger = (req, res, next) => {
 }
 
 export default requestLogger
-

@@ -128,24 +128,13 @@ class CartRepository {
     return cartCount
   }
 
-
   static async getCartForOrder(userId, session) {
-  return Cart.findOne({ userId })
-    .session(session)
-    .lean()
-}
+    return Cart.findOne({ userId }).session(session).lean()
+  }
 
-static async clearCartForOrder(userId, session) {
-  return Cart.updateOne(
-    { userId },
-    { $set: { items: [] } },
-    { session }
-  )
-}
-
-
-
-
+  static async clearCartForOrder(userId, session) {
+    return Cart.updateOne({ userId }, { $set: { items: [] } }, { session })
+  }
 }
 
 export default CartRepository

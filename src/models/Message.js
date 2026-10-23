@@ -1,56 +1,54 @@
-import mongoose from "mongoose";
+import mongoose from "mongoose"
 
-const attachmentSchema = new mongoose.Schema(
-  {
-    type: {
-      type: String,
-      enum: ["image", "pdf"],
-      required: true,
-    },
-
-    url: {
-      type: String,
-      required: true,
-      trim: true,
-    }
+const attachmentSchema = new mongoose.Schema({
+  type: {
+    type: String,
+    enum: ["image", "pdf"],
+    required: true
   },
-);
+
+  url: {
+    type: String,
+    required: true,
+    trim: true
+  }
+})
 
 const messageSchema = new mongoose.Schema(
   {
     roomId: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "Conversation",
-      required: true,
+      required: true
     },
 
     senderId: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "User",
-      required: true,
+      required: true
     },
 
     text: {
       type: String,
       trim: true,
       maxlength: 5000,
-      default: null,
+      default: null
     },
 
     attachment: {
       type: attachmentSchema,
-      default: null,
-    },
+      default: null
+    }
   },
   {
-    timestamps: true,
+    timestamps: true
   }
-);
+)
 
 messageSchema.index({
-  roomId: 1,
-});
+  roomId: 1
+})
 
-const Message = mongoose.model("Message", messageSchema);
+const Message = mongoose.model("Message", messageSchema)
 
-export default Message;
+export default Message
