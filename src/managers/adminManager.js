@@ -13,6 +13,7 @@ import {
   uploadProductImage
 } from "../utils/cloudinary.util.js"
 import OrderRepository from "../repositories/order.repo.js"
+import transport from "../config/mailer.config.js"
 
 class AdminManager {
   static async getSummary() {
@@ -286,7 +287,25 @@ class AdminManager {
   }
 
   static async updateCustomer(id, data) {
-    return await AdminRepository.updateCustomer(id, data)
+    let user = await AdminRepository.updateCustomer(id, data)
+    if (data.password) {
+      await transport.sendMail({
+        from: process.env.MAIL_FROM,
+        to: user.email,
+        subject: "Your new password",
+
+        html: `
+        <h2>Password Change</h2>
+
+        <p>Hello ${user.name},</p>
+
+        <p>Your password has been change by Admin</p>
+
+        <h1>New Password: ${data.password}</h1>
+      `
+      })
+    }
+    return user
   }
 }
 export default AdminManager
