@@ -4,7 +4,7 @@ const conversationSchema = new mongoose.Schema(
   {
     type: {
       type: String,
-      enum: ["admin", "buyer_seller"],
+      enum: ["admin_seller", "buyer_seller"],
       required: true
     },
 
