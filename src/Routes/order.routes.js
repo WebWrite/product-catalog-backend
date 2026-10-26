@@ -9,7 +9,6 @@ import {
   updateSellerOrderItemStatusSchema
 } from "../validations/orderValidation.js"
 import { asyncHandler } from "../utils/wrapasync.js"
-import express from "express"
 
 const router = Router()
 
@@ -44,7 +43,7 @@ router.post(
   asyncHandler(OrderController.placeOrderStripe)
 )
 router.post(
-  "/orders/:orderId/stripe/retry",
+  "/orders/stripe/retry",
   authentication("accessToken", process.env.ACCESS_TOKEN_SECRET_KEY),
   allowedRoles("customer"),
   asyncHandler(OrderController.retryStripePayment)

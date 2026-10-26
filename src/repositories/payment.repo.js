@@ -23,6 +23,17 @@ class PaymentRepository {
       }
     )
   }
+
+  static updatePaymentByOrderId(orderId, updates) {
+    return Payment.findOneAndUpdate(
+      { orderId },
+      { $set: updates },
+      {
+        returnDocument: "after",
+        runValidators: true
+      }
+    )
+  }
 }
 
 export default PaymentRepository

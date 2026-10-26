@@ -128,6 +128,7 @@ class OrderRepository {
     orderId,
     itemId,
     sellerId,
+    currentStatus,
     status,
     session
   ) {
@@ -138,7 +139,7 @@ class OrderRepository {
           $elemMatch: {
             _id: itemId,
             sellerId,
-            status: { $nin: ["delivered", "cancelled"] }
+            status: currentStatus
           }
         }
       },
@@ -153,12 +154,20 @@ class OrderRepository {
     )
   }
 
-  static updateOrderPaymentStatus(orderId, paymentStatus) {
-    return Order.findOneAndUpdate(
-      { _id: orderId, paymentMethod: "STRIPE" },
-      { $set: { paymentStatus } },
-      { new: true, runValidators: true }
-    )
+  static async updateOrderPaymentStatus(orderId, paymentStatus) {
+    const order = await Order.findById(orderId)
+
+    if (!order) return null
+
+    order.paymentStatus = paymentStatus
+
+    if (paymentStatus === "completed") {
+      order.items.forEach((item) => {
+        item.status = "confirmed"
+      })
+    }
+
+    return order.save()
   }
 }
 

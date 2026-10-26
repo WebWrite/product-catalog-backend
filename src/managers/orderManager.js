@@ -255,9 +255,29 @@ class OrderManager {
 
         const item = order.items.find((item) => item._id.toString() === itemId)
 
-        if (["delivered", "cancelled"].includes(item.status)) {
+        if (order.paymentMethod === "STRIPE") {
+          if (
+            (item.status === "pending" && status !== "cancelled") ||
+            (item.status === "confirmed" && status !== "delivered")
+          ) {
+            throw new AppError(
+              "Invalid item status transition.",
+              HTTP_STATUS.BAD_REQUES
+            )
+          }
+        } else if (order.paymentMethod === "COD") {
+          if (
+            item.status !== "pending" ||
+            !["cancelled", "delivered"].includes(status)
+          ) {
+            throw new AppError(
+              "Invalid item status transition.",
+              HTTP_STATUS.BAD_REQUEST
+            )
+          }
+        } else {
           throw new AppError(
-            `A ${item.status} item cannot be updated.`,
+            "Unsupported payment method.",
             HTTP_STATUS.BAD_REQUEST
           )
         }
@@ -266,6 +286,7 @@ class OrderManager {
           orderId,
           itemId,
           sellerId,
+          item.status,
           status,
           session
         )
@@ -416,17 +437,12 @@ class OrderManager {
         quantity: 1
       })
 
-      const checkoutSession = await stripe.checkout.sessions.create(
-        {
-          mode: "payment",
-          line_items: lineItems,
-          success_url: `${process.env.CLIENT_URL}/payment/success?session_id={CHECKOUT_SESSION_ID}`,
-          cancel_url: `${process.env.CLIENT_URL}/payment/cancelled`
-        },
-        {
-          idempotencyKey: `checkout-order-${order._id}`
-        }
-      )
+      const checkoutSession = await stripe.checkout.sessions.create({
+        mode: "payment",
+        line_items: lineItems,
+        success_url: `${process.env.CLIENT_URL}/payment/success?session_id={CHECKOUT_SESSION_ID}`,
+        cancel_url: `${process.env.CLIENT_URL}/payment/cancelled`
+      })
 
       await session.withTransaction(async () => {
         await PaymentRepository.createPayment(
@@ -488,8 +504,10 @@ class OrderManager {
       return
     }
 
+    // console.log("Stripe event:", event.type)
+    // console.log("Checkout Session ID:", session.id)
     const payment = await PaymentRepository.findBySessionId(session.id)
-
+    console.log("Matching Payment:", payment?._id ?? "NOT FOUND")
     if (!payment) {
       throw new AppError("Payment not found.", HTTP_STATUS.NOT_FOUND)
     }
@@ -510,6 +528,16 @@ class OrderManager {
       throw new AppError("Order not found.", HTTP_STATUS.NOT_FOUND)
     }
 
+    const allItemsPending =
+      order.items.length > 0 &&
+      order.items.every((item) => item.status === "pending")
+
+    if (!allItemsPending) {
+      throw new AppError(
+        "Payment cannot be retried because some order items are no longer pending.",
+        HTTP_STATUS.CONFLICT
+      )
+    }
     if (order.paymentMethod !== "STRIPE") {
       throw new AppError(
         "This order does not use Stripe.",
@@ -545,12 +573,23 @@ class OrderManager {
     const checkoutSession = await stripe.checkout.sessions.create({
       mode: "payment",
       line_items: lineItems,
-      success_url: `${process.env.FRONTEND_URL}/orders/success?orderId=${order._id}`,
-      cancel_url: `${process.env.FRONTEND_URL}/orders`,
+      success_url: `${process.env.CLIENT_URL}/payment/success?session_id={CHECKOUT_SESSION_ID}`,
+      cancel_url: `${process.env.CLIENT_URL}/payment/cancelled`,
       metadata: {
         orderId: order._id.toString()
       }
     })
+
+    const payment = await PaymentRepository.updatePaymentByOrderId(order._id, {
+      sessionId: checkoutSession.id
+    })
+
+    if (!payment) {
+      throw new AppError(
+        "Payment record not found for this order.",
+        HTTP_STATUS.NOT_FOUND
+      )
+    }
 
     return {
       orderId: order._id,

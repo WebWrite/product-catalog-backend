@@ -19,7 +19,6 @@ class AuthController {
   static async Login(req, res) {
     const result = await UserManager.Login(req.body)
     const { user, accessToken, refreshToken, cart } = result
-    console.log(user)
     const { role, email, name, isVerified, status } = user
     AuthCookies.setAccessTokenCookie(res, accessToken, refreshToken)
     return res.status(HTTP_STATUS.OK).json({
