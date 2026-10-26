@@ -39,11 +39,23 @@ class OrderRepository {
     return Order.find({ customerId })
       .sort({ createdAt: -1 })
       .select(
-        "_id items shippingAddress subtotal shippingCost total paymentMethod paymentStatus createdAt"
+        "_id customerId items shippingAddress subtotal shippingCost total paymentMethod paymentStatus createdAt"
       )
+      .populate({
+        path: "customerId",
+        select: "name email"
+      })
       .populate({
         path: "items.productId",
         select: "image.url"
+      })
+      .populate({
+        path: "items.sellerId",
+        select: "name email -_id",
+        populate: {
+          path: "sellerProfile",
+          select: "storeName -_id"
+        }
       })
       .lean()
   }
@@ -98,21 +110,37 @@ class OrderRepository {
     )
   }
 
-  static async findOrdersBySellerId(sellerId) {
-    const orders = await Order.find({ "items.sellerId": sellerId })
-      .select("_id items paymentMethod paymentStatus")
+  static findOrdersBySellerId(sellerId) {
+    return Order.find({ "items.sellerId": sellerId })
+      .sort({ createdAt: -1 })
+      .select(
+        "_id customerId items shippingAddress subtotal shippingCost total paymentMethod paymentStatus createdAt"
+      )
+      .populate({
+        path: "customerId",
+        select: "name email -_id"
+      })
       .populate({
         path: "items.productId",
         select: "image.url"
       })
+      .populate({
+        path: "items.sellerId",
+        select: "name email",
+        populate: {
+          path: "sellerProfile",
+          select: "storeName -_id"
+        }
+      })
       .lean()
-
-    return orders.map((order) => ({
-      ...order,
-      items: order.items.filter(
-        (item) => item.sellerId.toString() === sellerId.toString()
+      .then((orders) =>
+        orders.map((order) => ({
+          ...order,
+          items: order.items.filter(
+            (item) => item.sellerId?._id?.toString() === sellerId.toString()
+          )
+        }))
       )
-    }))
   }
 
   static findSellerOrderItem(orderId, itemId, sellerId, session) {
@@ -128,6 +156,7 @@ class OrderRepository {
     orderId,
     itemId,
     sellerId,
+    currentStatus,
     status,
     session
   ) {
@@ -138,7 +167,7 @@ class OrderRepository {
           $elemMatch: {
             _id: itemId,
             sellerId,
-            status: { $nin: ["delivered", "cancelled"] }
+            status: currentStatus
           }
         }
       },
@@ -153,12 +182,20 @@ class OrderRepository {
     )
   }
 
-  static updateOrderPaymentStatus(orderId, paymentStatus) {
-    return Order.findOneAndUpdate(
-      { _id: orderId, paymentMethod: "STRIPE" },
-      { $set: { paymentStatus } },
-      { new: true, runValidators: true }
-    )
+  static async updateOrderPaymentStatus(orderId, paymentStatus) {
+    const order = await Order.findById(orderId)
+
+    if (!order) return null
+
+    order.paymentStatus = paymentStatus
+
+    if (paymentStatus === "completed") {
+      order.items.forEach((item) => {
+        item.status = "confirmed"
+      })
+    }
+
+    return order.save()
   }
 }
 

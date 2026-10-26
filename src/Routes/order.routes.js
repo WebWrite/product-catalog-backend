@@ -9,7 +9,6 @@ import {
   updateSellerOrderItemStatusSchema
 } from "../validations/orderValidation.js"
 import { asyncHandler } from "../utils/wrapasync.js"
-import express from "express"
 
 const router = Router()
 
@@ -43,7 +42,12 @@ router.post(
   validate(createCodOrderSchema),
   asyncHandler(OrderController.placeOrderStripe)
 )
-
+router.post(
+  "/orders/stripe/retry",
+  authentication("accessToken", process.env.ACCESS_TOKEN_SECRET_KEY),
+  allowedRoles("customer"),
+  asyncHandler(OrderController.retryStripePayment)
+)
 //router.post("/orders/stripe/webhook",express.raw({ type: "application/json" }),asyncHandler(OrderController.handleStripeWebhook));
 //seller orders
 router.get(
@@ -52,6 +56,7 @@ router.get(
   allowedRoles("seller"),
   asyncHandler(OrderController.getMySellerOrdersController)
 )
+
 router.patch(
   "/seller/orders/item-status",
   authentication("accessToken", process.env.ACCESS_TOKEN_SECRET_KEY),

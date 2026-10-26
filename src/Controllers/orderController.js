@@ -75,6 +75,18 @@ class OrderController {
       data: result
     })
   }
+  static async retryStripePayment(req, res) {
+    const result = await OrderManager.retryStripePayment(
+      req.user.id,
+      req.body.orderId
+    )
+
+    return res.status(HTTP_STATUS.OK).json({
+      success: true,
+      message: "Stripe checkout URL generated successfully.",
+      data: result
+    })
+  }
 
   static async handleStripeWebhook(req, res) {
     await OrderManager.handleStripeWebhook(

@@ -50,6 +50,13 @@ const userSchema = new mongoose.Schema(
   }
 )
 
+userSchema.virtual("sellerProfile", {
+  ref: "SellerProfile",
+  localField: "_id",
+  foreignField: "userId",
+  justOne: true
+})
+
 userSchema.index({ email: 1 }, { unique: true })
 
 const User = mongoose.model("User", userSchema)
