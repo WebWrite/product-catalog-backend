@@ -317,158 +317,101 @@ class OrderManager {
   }
 
   static async createStripeCheckout(customerId, data) {
-    const session = await mongoose.startSession()
+    const cart = await CartRepository.getCartForOrder(customerId)
 
-    try {
-      let order
+    if (!cart?.items?.length) {
+      throw new AppError("Your cart is empty.", HTTP_STATUS.BAD_REQUEST)
+    }
 
-      await session.withTransaction(async () => {
-        const cart = await CartRepository.getCartForOrder(customerId, session)
+    const products = await OrderRepository.findProductsForOrder(
+      cart.items.map((item) => item.productId)
+    )
 
-        if (!cart?.items?.length) {
-          throw new AppError("Your cart is empty.", HTTP_STATUS.BAD_REQUEST)
-        }
+    const items = cart.items.map((cartItem) => {
+      const product = products.find(
+        (product) => product._id.toString() === cartItem.productId.toString()
+      )
 
-        const products = await OrderRepository.findProductsForOrder(
-          cart.items.map((item) => item.productId),
-          session
+      if (!product || product.status !== "active") {
+        throw new AppError(
+          "One or more products are unavailable.",
+          HTTP_STATUS.BAD_REQUEST
         )
+      }
 
-        const items = cart.items.map((cartItem) => {
-          const product = products.find(
-            (product) =>
-              product._id.toString() === cartItem.productId.toString()
-          )
-
-          if (!product) {
-            throw new AppError(
-              "One or more cart products no longer exist.",
-              HTTP_STATUS.NOT_FOUND
-            )
-          }
-
-          if (product.status !== "active") {
-            throw new AppError(
-              `${product.name} is not available.`,
-              HTTP_STATUS.BAD_REQUEST
-            )
-          }
-
-          return {
-            productId: product._id,
-            sellerId: product.sellerId,
-            name: product.name,
-            price: product.price,
-            quantity: cartItem.quantity,
-            itemTotal: product.price * cartItem.quantity,
-            size: getProductSize(product, cartItem.size),
-            status: "pending"
-          }
-        })
-
-        const historyEntries = []
-
-        for (const item of items) {
-          const product = await OrderRepository.decreaseStockForOrder(
-            item.productId,
-            item.quantity,
-            session
-          )
-
-          if (!product) {
-            throw new AppError(
-              `Insufficient stock or unavailable product: ${item.name}.`,
-              HTTP_STATUS.CONFLICT
-            )
-          }
-
-          historyEntries.push({
-            productId: product._id,
-            sellerId: product.sellerId,
-            previousStock: product.stock + item.quantity,
-            newStock: product.stock,
-            reason: "order"
-          })
-        }
-
-        const subtotal = items.reduce((sum, item) => sum + item.itemTotal, 0)
-
-        const [createdOrder] = await OrderRepository.createOrder(
-          {
-            customerId,
-            items,
-            shippingAddress: {
-              ...data.shippingAddress,
-              phone: `+92${data.shippingAddress.phone}`
-            },
-            subtotal,
-            shippingCost: SHIPPING_COST,
-            total: subtotal + SHIPPING_COST,
-            paymentMethod: "STRIPE",
-            paymentStatus: "pending"
-          },
-          session
+      if (product.stock < cartItem.quantity) {
+        throw new AppError(
+          `Insufficient stock for ${product.name}.`,
+          HTTP_STATUS.CONFLICT
         )
-
-        await OrderRepository.createOrderStockHistory(historyEntries, session)
-
-        order = createdOrder
-      })
-
-      const lineItems = order.items.map((item) => ({
-        price_data: {
-          currency: "pkr",
-          product_data: {
-            name: item.name
-          },
-          unit_amount: Math.round(item.price * 100)
-        },
-        quantity: item.quantity
-      }))
-
-      lineItems.push({
-        price_data: {
-          currency: "pkr",
-          product_data: {
-            name: "Delivery"
-          },
-          unit_amount: Math.round(order.shippingCost * 100)
-        },
-        quantity: 1
-      })
-
-      const checkoutSession = await stripe.checkout.sessions.create({
-        mode: "payment",
-        line_items: lineItems,
-        success_url: `${process.env.CLIENT_URL}/payment/success?session_id={CHECKOUT_SESSION_ID}`,
-        cancel_url: `${process.env.CLIENT_URL}/payment/cancelled`
-      })
-
-      await session.withTransaction(async () => {
-        await PaymentRepository.createPayment(
-          {
-            orderId: order._id,
-            provider: "stripe",
-            sessionId: checkoutSession.id,
-            amount: order.total,
-            currency: "PKR",
-            status: "pending"
-          },
-          session
-        )
-
-        const result = await CartRepository.clearCartForOrder(
-          customerId,
-          session
-        )
-      })
+      }
 
       return {
-        orderId: order._id,
-        checkoutUrl: checkoutSession.url
+        productId: product._id.toString(),
+        sellerId: product.sellerId.toString(),
+        name: product.name,
+        price: product.price,
+        quantity: cartItem.quantity,
+        itemTotal: product.price * cartItem.quantity,
+        size: getProductSize(product, cartItem.size)
       }
-    } finally {
-      await session.endSession()
+    })
+
+    const shippingAddress = {
+      ...data.shippingAddress,
+      phone: `+92${data.shippingAddress.phone}`
+    }
+
+    const subtotal = items.reduce((sum, item) => sum + item.itemTotal, 0)
+    const total = subtotal + SHIPPING_COST
+
+    const checkoutData = JSON.stringify({
+      customerId: customerId.toString(),
+      items,
+      shippingAddress,
+      subtotal,
+      shippingCost: SHIPPING_COST,
+      total
+    })
+
+    if (checkoutData.length > 450) {
+      throw new AppError(
+        "Checkout details are too large for Stripe metadata.",
+        HTTP_STATUS.BAD_REQUEST
+      )
+    }
+
+    const lineItems = items.map((item) => ({
+      price_data: {
+        currency: "pkr",
+        product_data: { name: item.name },
+        unit_amount: Math.round(item.price * 100)
+      },
+      quantity: item.quantity
+    }))
+
+    lineItems.push({
+      price_data: {
+        currency: "pkr",
+        product_data: { name: "Delivery" },
+        unit_amount: Math.round(SHIPPING_COST * 100)
+      },
+      quantity: 1
+    })
+
+    const checkoutSession = await stripe.checkout.sessions.create({
+      mode: "payment",
+      line_items: lineItems,
+      client_reference_id: customerId.toString(),
+      metadata: {
+        checkoutData
+      },
+      success_url: `${process.env.CLIENT_URL}/payment/success?session_id={CHECKOUT_SESSION_ID}`,
+      cancel_url: `${process.env.CLIENT_URL}/payment/cancelled`
+    })
+
+    return {
+      checkoutUrl: checkoutSession.url
     }
   }
 
@@ -488,33 +431,129 @@ class OrderManager {
       )
     }
 
-    const session = event.data.object
-    let status
+    const checkoutSession = event.data.object
 
     if (
-      event.type === "checkout.session.completed" &&
-      session.payment_status === "paid"
+      event.type !== "checkout.session.completed" ||
+      checkoutSession.payment_status !== "paid"
     ) {
-      status = "completed"
-    } else if (event.type === "checkout.session.async_payment_succeeded") {
-      status = "completed"
-    } else if (event.type === "checkout.session.async_payment_failed") {
-      status = "failed"
-    } else {
       return
     }
 
-    // console.log("Stripe event:", event.type)
-    // console.log("Checkout Session ID:", session.id)
-    const payment = await PaymentRepository.findBySessionId(session.id)
-    console.log("Matching Payment:", payment?._id ?? "NOT FOUND")
-    if (!payment) {
-      throw new AppError("Payment not found.", HTTP_STATUS.NOT_FOUND)
+    let checkoutData
+
+    try {
+      checkoutData = JSON.parse(checkoutSession.metadata?.checkoutData)
+    } catch {
+      throw new AppError("Invalid checkout metadata.", HTTP_STATUS.BAD_REQUEST)
     }
 
-    await PaymentRepository.updatePaymentBySessionId(session.id, { status })
+    const {
+      customerId,
+      items,
+      shippingAddress,
+      subtotal,
+      shippingCost,
+      total
+    } = checkoutData
 
-    await OrderRepository.updateOrderPaymentStatus(payment.orderId, status)
+    if (
+      !mongoose.isValidObjectId(customerId) ||
+      checkoutSession.client_reference_id !== customerId ||
+      checkoutSession.amount_total !== Math.round(total * 100) ||
+      checkoutSession.currency?.toLowerCase() !== "pkr"
+    ) {
+      throw new AppError("Invalid checkout details.", HTTP_STATUS.BAD_REQUEST)
+    }
+
+    const existingPayment = await PaymentRepository.findBySessionId(
+      checkoutSession.id
+    )
+
+    if (existingPayment) return
+
+    const dbSession = await mongoose.startSession()
+
+    try {
+      await dbSession.withTransaction(async () => {
+        const paymentExists = await PaymentRepository.findBySessionId(
+          checkoutSession.id
+        )
+
+        if (paymentExists) return
+
+        const historyEntries = []
+
+        for (const item of items) {
+          const product = await OrderRepository.decreaseStockForOrder(
+            item.productId,
+            item.quantity,
+            dbSession
+          )
+
+          if (!product) {
+            throw new AppError(
+              `Insufficient stock for ${item.name}.`,
+              HTTP_STATUS.CONFLICT
+            )
+          }
+
+          historyEntries.push({
+            productId: product._id,
+            sellerId: product.sellerId,
+            previousStock: product.stock + item.quantity,
+            newStock: product.stock,
+            reason: "order"
+          })
+        }
+
+        const [order] = await OrderRepository.createOrder(
+          {
+            customerId,
+            items: items.map((item) => ({
+              ...item,
+              status: "confirmed"
+            })),
+            shippingAddress,
+            subtotal,
+            shippingCost,
+            total,
+            paymentMethod: "STRIPE",
+            paymentStatus: "completed"
+          },
+          dbSession
+        )
+
+        await OrderRepository.createOrderStockHistory(historyEntries, dbSession)
+
+        await PaymentRepository.createPayment(
+          {
+            orderId: order._id,
+            provider: "stripe",
+            sessionId: checkoutSession.id,
+            paymentIntentId:
+              typeof checkoutSession.payment_intent === "string"
+                ? checkoutSession.payment_intent
+                : undefined,
+            amount: total,
+            currency: "PKR",
+            status: "completed"
+          },
+          dbSession
+        )
+
+        const result = await CartRepository.clearCartForOrder(
+          customerId,
+          dbSession
+        )
+
+        if (result.matchedCount !== 1) {
+          throw new AppError("Unable to clear the cart.", HTTP_STATUS.CONFLICT)
+        }
+      })
+    } finally {
+      await dbSession.endSession()
+    }
   }
 
   static async retryStripePayment(customerId, orderId) {
