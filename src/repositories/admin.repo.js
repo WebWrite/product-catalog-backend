@@ -315,15 +315,20 @@ class AdminRepository {
     }).session(session)
   }
 
-  static async updateOrderItemStatus(orderId, itemId, status, session) {
+  static async updateOrderItemStatus(
+    orderId,
+    itemId,
+    currentStatus,
+    status,
+    session
+  ) {
     return Order.findOneAndUpdate(
       {
         _id: orderId,
         items: {
           $elemMatch: {
             _id: itemId,
-
-            status: { $nin: ["delivered", "cancelled"] }
+            status: currentStatus
           }
         }
       },
@@ -595,6 +600,70 @@ class AdminRepository {
         runValidators: true
       }
     ).select("name email role status isVerified createdAt")
+  }
+
+  static async findAllProducts(options) {
+    const filter = {}
+    if (options.status) {
+      filter.status = options.status
+    }
+
+    if (options.minPrice != null || options.maxPrice != null) {
+      filter.price = {}
+      if (options.minPrice != null) {
+        filter.price.$gte = Number(options.minPrice)
+      }
+
+      if (options.maxPrice != null) {
+        filter.price.$lte = Number(options.maxPrice)
+      }
+    }
+
+    if (options.search?.trim()) {
+      filter.name = {
+        $regex: options.search.trim(),
+        $options: "i"
+      }
+    }
+    if (options.category) {
+      filter.category = options.category
+    }
+
+    if (options.inStock === true || options.inStock === "true") {
+      filter.stock = {
+        $gte: 1
+      }
+    }
+
+    const sortOptions = {
+      "high-to-low": { price: -1 },
+      "low-to-high": { price: 1 }
+    }
+
+    const sort = sortOptions[options.sortBy] || { createdAt: -1 }
+
+    const currentPage = Math.max(1, Number(options.page) || 1)
+    const pageLimit = Math.max(1, Number(options.limit) || 15)
+    const skip = (currentPage - 1) * pageLimit
+
+    const [products, total] = await Promise.all([
+      Product.find(filter)
+        .sort(sort)
+        .skip(skip)
+        .limit(pageLimit)
+        .populate("sellerId", "name")
+        .populate("seller", "storeName storeType -_id")
+        .lean(),
+      Product.countDocuments(filter)
+    ])
+
+    return {
+      products,
+      total,
+      page: currentPage,
+      limit: pageLimit,
+      totalPages: Math.ceil(total / pageLimit)
+    }
   }
 }
 export default AdminRepository

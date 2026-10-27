@@ -77,6 +77,9 @@ class AdminManager {
   static async getProductsSummary() {
     return await AdminRepository.productSummary()
   }
+  static getAllProduct(filters) {
+    return AdminRepository.findAllProducts(filters)
+  }
 
   static async updateProductByAdmin(productId, data, imageBuffer) {
     const currentProduct = await findProductById(productId)
@@ -202,33 +205,52 @@ class AdminManager {
           itemId,
           session
         )
-
         if (!order) {
           throw new AppError(
-            "Order item not found for this seller.",
+            ERROR_MESSAGES.ORDER_ITEM_NOT_FOUND,
             HTTP_STATUS.NOT_FOUND
           )
         }
 
         const item = order.items.find((item) => item._id.toString() === itemId)
 
-        if (["delivered", "cancelled"].includes(item.status)) {
+        if (order.paymentMethod === "STRIPE") {
+          if (
+            (item.status === "pending" && status !== "cancelled") ||
+            (item.status === "confirmed" && status !== "delivered")
+          ) {
+            throw new AppError(
+              ERROR_MESSAGES.INVALID_ITEM_TRANSITION,
+              HTTP_STATUS.BAD_REQUEST
+            )
+          }
+        } else if (order.paymentMethod === "COD") {
+          if (
+            item.status !== "pending" ||
+            !["cancelled", "delivered"].includes(status)
+          ) {
+            throw new AppError(
+              ERROR_MESSAGES.INVALID_ITEM_TRANSITION,
+              HTTP_STATUS.BAD_REQUEST
+            )
+          }
+        } else {
           throw new AppError(
-            `A ${item.status} item cannot be updated.`,
+            ERROR_MESSAGES.UNSUPPORT_PAYMENT_METHOD,
             HTTP_STATUS.BAD_REQUEST
           )
         }
-
         updatedOrder = await AdminRepository.updateOrderItemStatus(
           orderId,
           itemId,
+          item.status,
           status,
           session
         )
 
         if (!updatedOrder) {
           throw new AppError(
-            "Order item status could not be updated.",
+            ERROR_MESSAGES.ORDER_NOT_UPDATED,
             HTTP_STATUS.CONFLICT
           )
         }

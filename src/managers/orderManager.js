@@ -262,7 +262,7 @@ class OrderManager {
           ) {
             throw new AppError(
               "Invalid item status transition.",
-              HTTP_STATUS.BAD_REQUES
+              HTTP_STATUS.BAD_REQUEST
             )
           }
         } else if (order.paymentMethod === "COD") {

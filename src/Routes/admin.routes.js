@@ -30,6 +30,7 @@ router.get(
 )
 router.get("/orders", asyncHandler(AdminController.findOrders))
 router.get("/products/summary", asyncHandler(AdminController.productSummary))
+router.get("/products", asyncHandler(AdminController.getAllProducts))
 
 router.get("/sellers", asyncHandler(AdminController.findAllSellers))
 router.get(
