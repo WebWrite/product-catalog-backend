@@ -1,5 +1,6 @@
 import Product from "../models/Product.js"
 import StockHistory from "../models/StockHistory.js"
+import mongoose from "mongoose"
 
 export const createProduct = async (data) => {
   return Product.create(data)
@@ -22,6 +23,55 @@ export const getSellerProductStats = async (sellerId) => {
   ])
 
   return { totalProducts, activeProducts }
+}
+
+export const getSellerInventoryHealth = async (sellerId) => {
+  const sellerObjectId = new mongoose.Types.ObjectId(sellerId)
+  const [stats] = await Product.aggregate([
+    { $match: { sellerId: sellerObjectId } },
+    {
+      $group: {
+        _id: null,
+        totalProducts: { $sum: 1 },
+        healthyStock: {
+          $sum: { $cond: [{ $gt: ["$stock", 5] }, 1, 0] }
+        },
+        lowStock: {
+          $sum: {
+            $cond: [
+              { $and: [{ $gt: ["$stock", 0] }, { $lte: ["$stock", 5] }] },
+              1,
+              0
+            ]
+          }
+        },
+        soldOut: {
+          $sum: { $cond: [{ $eq: ["$stock", 0] }, 1, 0] }
+        }
+      }
+    }
+  ])
+
+  const totalProducts = stats?.totalProducts || 0
+  const percentage = (count) =>
+    totalProducts ? Number(((count / totalProducts) * 100).toFixed(2)) : 0
+
+  return {
+    totalProducts,
+    healthyStock: {
+      count: stats?.healthyStock || 0,
+      percentage: percentage(stats?.healthyStock || 0)
+    },
+    lowStock: {
+      count: stats?.lowStock || 0,
+      percentage: percentage(stats?.lowStock || 0)
+    },
+
+    soldOut: {
+      count: stats?.soldOut || 0,
+      percentage: percentage(stats?.soldOut || 0)
+    }
+  }
 }
 
 export const findProductById = async (productId) => {
