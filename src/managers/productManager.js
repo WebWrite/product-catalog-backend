@@ -1,6 +1,5 @@
 import {
   deleteProductImage,
-  deleteProductImages,
   uploadProductImage
 } from "../utils/cloudinary.util.js"
 import {
@@ -87,17 +86,6 @@ export const deleteProductManager = async (productId, ownerId) => {
     throw new AppError(ERROR_MESSAGES.PRODUCT_NOT_FOUND, HTTP_STATUS.NOT_FOUND)
   }
 
-  if (product.image?.publicId) {
-    try {
-      await deleteProductImage(product.image.publicId)
-    } catch (cleanupError) {
-      logger.error("Failed to clean up deleted product image", {
-        productId: product._id.toString(),
-        publicId: product.image.publicId,
-        error: cleanupError.message
-      })
-    }
-  }
   return product
 }
 
@@ -113,19 +101,6 @@ export const bulkDeleteProductsManager = async (productIds, sellerId) => {
   }
 
   const result = await deleteProductsByOwner(productIds, sellerId)
-
-  const publicIds = products
-    .map((product) => product.image?.publicId)
-    .filter(Boolean)
-
-  try {
-    await deleteProductImages(publicIds)
-  } catch (error) {
-    logger.error("Bulk product image cleanup failed", {
-      productIds,
-      error: error.message
-    })
-  }
 
   return result.deletedCount
 }

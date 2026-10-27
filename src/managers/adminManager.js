@@ -179,17 +179,6 @@ class AdminManager {
       )
     }
 
-    if (product.image?.publicId) {
-      try {
-        await deleteProductImage(product.image.publicId)
-      } catch (cleanupError) {
-        logger.error("Failed to clean up deleted product image", {
-          productId: product._id.toString(),
-          publicId: product.image.publicId,
-          error: cleanupError.message
-        })
-      }
-    }
     return product
   }
 

@@ -32,10 +32,19 @@ export const findProductById = async (productId) => {
 }
 
 export const deleteProductByOwner = async (productId, sellerId) => {
-  return Product.findOneAndDelete({
-    _id: productId,
-    sellerId
-  })
+  return Product.findOneAndUpdate(
+    {
+      _id: productId,
+      sellerId
+    },
+    {
+      $set: {
+        isDeleted: true,
+        deletedAt: new Date()
+      }
+    },
+    { new: true, runValidators: true }
+  )
 }
 
 export const findProductsByOwner = async (productIds, sellerId) =>
@@ -47,10 +56,19 @@ export const findProductsByOwner = async (productIds, sellerId) =>
     .lean()
 
 export const deleteProductsByOwner = async (productIds, sellerId) =>
-  Product.deleteMany({
-    _id: { $in: productIds },
-    sellerId
-  })
+  Product.updateMany(
+    {
+      _id: { $in: productIds },
+      sellerId
+    },
+    {
+      $set: {
+        isDeleted: true,
+        deletedAt: new Date()
+      }
+    },
+    { runValidators: true }
+  )
 
 export const updateProductStockByOwner = async (
   productId,

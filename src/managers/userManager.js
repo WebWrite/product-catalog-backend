@@ -55,6 +55,9 @@ class UserManager {
   }
   static async Login(data) {
     const user = await UserUtil.verifyCredentialsForLogin(data)
+    if (user.status == "inactive") {
+      throw new AppError(ERROR_MESSAGES.ACCOUNT_INACTIVE, HTTP_STATUS.FORBIDDEN)
+    }
     const accessToken = Token.getAccessToken(user._id, user.role)
     const refreshToken = Token.getRefreshToken(user._id, user.role)
     await UserRepository.updateRefreshToken(user._id, refreshToken)
@@ -89,6 +92,9 @@ class UserManager {
     if (!user) {
       throw new AppError(ERROR_MESSAGES.USER_NOT_FOUND, HTTP_STATUS.NOT_FOUND)
     }
+    if (user.status == "inactive") {
+      throw new AppError(ERROR_MESSAGES.ACCOUNT_INACTIVE, HTTP_STATUS.FORBIDDEN)
+    }
     if (!user.isVerified) {
       throw new AppError(ERROR_MESSAGES.VERIFY_EMAIL, HTTP_STATUS.BAD_REQUEST)
     }
@@ -97,8 +103,11 @@ class UserManager {
 
   static async verifyLoginOtp(data) {
     const { email, otp } = data
-    await OtpUtils.verifyOtp(email, otp, "signin")
     const user = await UserUtil.findUserWitEmail(email)
+    if (user.status == "inactive") {
+      throw new AppError(ERROR_MESSAGES.ACCOUNT_INACTIVE, HTTP_STATUS.FORBIDDEN)
+    }
+    await OtpUtils.verifyOtp(email, otp, "signin")
     const accessToken = Token.getAccessToken(user._id, user.role)
     const refreshToken = Token.getRefreshToken(user._id, user.role)
     await UserRepository.updateRefreshToken(user._id, refreshToken)

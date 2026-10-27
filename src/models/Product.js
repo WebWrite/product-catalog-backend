@@ -74,6 +74,17 @@ const productSchema = new mongoose.Schema(
       enum: ["active", "inactive"],
       default: "active",
       required: true
+    },
+
+    isDeleted: {
+      type: Boolean,
+      default: false,
+      required: true
+    },
+
+    deletedAt: {
+      type: Date,
+      default: null
     }
   },
   {
@@ -84,6 +95,21 @@ const productSchema = new mongoose.Schema(
 )
 
 productSchema.index({ sellerId: 1 })
+productSchema.index({ isDeleted: 1 })
+
+const excludeDeletedProducts = function () {
+  if (this.getFilter().isDeleted === undefined) {
+    this.where({ isDeleted: { $ne: true } })
+  }
+}
+
+productSchema.pre(/^find/, excludeDeletedProducts)
+productSchema.pre("countDocuments", excludeDeletedProducts)
+productSchema.pre("distinct", excludeDeletedProducts)
+productSchema.pre("aggregate", function () {
+  this.pipeline().unshift({ $match: { isDeleted: { $ne: true } } })
+})
+
 productSchema.virtual("seller", {
   ref: "SellerProfile",
   localField: "sellerId",

@@ -301,9 +301,16 @@ class AdminRepository {
   }
 
   static async deleteProductByAdmin(productId) {
-    return Product.findOneAndDelete({
-      _id: productId
-    })
+    return Product.findOneAndUpdate(
+      { _id: productId },
+      {
+        $set: {
+          isDeleted: true,
+          deletedAt: new Date()
+        }
+      },
+      { new: true, runValidators: true }
+    )
   }
 
   static async findOrderItem(orderId, itemId, session) {
