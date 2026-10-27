@@ -41,5 +41,9 @@ export const ERROR_MESSAGES = Object.freeze({
   ORDER_ITEM_NOT_FOUND: "Order item not found",
   INVALID_ITEM_TRANSITION: "Invalid item status transition.",
   UNSUPPORT_PAYMENT_METHOD: "Unsupported payment method.",
-  ORDER_NOT_UPDATED: "Order item status could not be updated."
+  ORDER_NOT_UPDATED: "Order item status could not be updated.",
+  //chat
+  CHAT_NOT_FOUND: "Conversation not found.",
+  CHAT_CREATE_FAILED: "Unable to create conversation.",
+  CHAT_JOIN_FAILED: "Unable to join conversation."
 })

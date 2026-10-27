@@ -4,7 +4,7 @@ const conversationSchema = new mongoose.Schema(
   {
     type: {
       type: String,
-      enum: ["admin_seller", "buyer_seller"],
+      enum: ["admin_seller", "buyer_seller", "buyer_admin"],
       required: true
     },
 
@@ -14,25 +14,7 @@ const conversationSchema = new mongoose.Schema(
         ref: "User",
         required: true
       }
-    ],
-
-    lastMessageId: {
-      type: mongoose.Schema.Types.ObjectId,
-      ref: "Message",
-      default: null
-    },
-
-    lastMessage: {
-      type: String,
-      trim: true,
-      maxlength: 1000,
-      default: null
-    },
-
-    lastMessageAt: {
-      type: Date,
-      default: null
-    }
+    ]
   },
   {
     timestamps: true

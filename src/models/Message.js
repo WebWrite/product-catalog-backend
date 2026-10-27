@@ -6,7 +6,6 @@ const attachmentSchema = new mongoose.Schema({
     enum: ["image", "pdf"],
     required: true
   },
-
   url: {
     type: String,
     required: true,
@@ -28,6 +27,12 @@ const messageSchema = new mongoose.Schema(
       required: true
     },
 
+    recipientId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "User",
+      required: true
+    },
+
     text: {
       type: String,
       trim: true,
@@ -38,6 +43,11 @@ const messageSchema = new mongoose.Schema(
     attachment: {
       type: attachmentSchema,
       default: null
+    },
+
+    seen: {
+      type: Boolean,
+      default: false
     }
   },
   {
@@ -45,9 +55,12 @@ const messageSchema = new mongoose.Schema(
   }
 )
 
-messageSchema.index({
-  roomId: 1
-})
+messageSchema.index({ roomId: 1, createdAt: -1 })
+
+messageSchema.index(
+  { roomId: 1, recipientId: 1 },
+  { partialFilterExpression: { seen: false } }
+)
 
 const Message = mongoose.model("Message", messageSchema)
 
