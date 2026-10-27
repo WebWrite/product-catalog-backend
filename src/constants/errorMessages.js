@@ -37,5 +37,9 @@ export const ERROR_MESSAGES = Object.freeze({
   PRODUCT_NOT_FOUND: "Product not found or unavailable",
   CART_ITEM_NOT_FOUND: "Cart not found",
   EMPTY_CART: "Empty Cart",
-  SELLER_NOT_FOUND: "Seller not found."
+  SELLER_NOT_FOUND: "Seller not found.",
+  ORDER_ITEM_NOT_FOUND: "Order item not found",
+  INVALID_ITEM_TRANSITION: "Invalid item status transition.",
+  UNSUPPORT_PAYMENT_METHOD: "Unsupported payment method.",
+  ORDER_NOT_UPDATED: "Order item status could not be updated."
 })

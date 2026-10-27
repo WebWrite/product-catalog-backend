@@ -85,6 +85,40 @@ class AdminController {
     })
   }
 
+  static async getAllProducts(req, res) {
+    let {
+      minPrice,
+      maxPrice,
+      sortBy,
+      page,
+      limit,
+      status,
+      search = "",
+      category = null,
+      inStock = null
+    } = req.query
+    page = Math.max(Number(page), 1)
+    limit = Math.min(Math.max(Number(limit), 1), 15)
+
+    let options = {
+      minPrice,
+      maxPrice,
+      sortBy,
+      status,
+      page,
+      limit,
+      search,
+      category,
+      inStock
+    }
+    const products = await AdminManager.getAllProduct(options)
+    return res.status(HTTP_STATUS.OK).json({
+      success: true,
+      message: SUCCESS_MESSAGES.PRODUCTS_FETCHED,
+      data: products
+    })
+  }
+
   static async updateProductByAdmin(req, res) {
     if (Object.keys(req.body || {}).length === 0 && !req.file) {
       throw new AppError(
