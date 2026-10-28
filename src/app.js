@@ -15,6 +15,7 @@ import cartRoutes from "./Routes/cart.routes.js"
 import orderRoutes from "./Routes/order.routes.js"
 import adminRoutes from "./Routes/admin.routes.js"
 import stripeWebHookRoutes from "./Routes/stripewebhook.routes.js"
+import chatRoutes from "./Routes/chat.routes.js"
 import sellerDashboardRoutes from "./Routes/selles.routes.js"
 import authorization from "./middlewares/authorization.middleware.js"
 import authentication from "./middlewares/authentication.middleware.js"
@@ -62,6 +63,7 @@ app.use(
   authorization("admin"),
   adminRoutes
 )
+app.use(`${baseURL}/chat`, chatRoutes)
 
 app.use(notFound)
 
