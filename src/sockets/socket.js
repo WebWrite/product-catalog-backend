@@ -14,7 +14,11 @@ const initializeSocket = (httpServer) => {
   io.engine.use(cookieParser())
   io.use(socketAuth)
 
-  io.on("connection", (socket) => {
+  io.on("connection", async (socket) => {
+    const { userId } = socket.data.user
+
+    await socket.join(`user:${userId}`)
+
     console.log("Socket connected:", socket.id)
     console.log("Authenticated user:", socket.data.user)
 

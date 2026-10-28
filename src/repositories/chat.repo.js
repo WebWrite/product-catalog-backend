@@ -125,6 +125,20 @@ class ChatRepository {
       .select("_id roomId")
       .lean()
   }
+
+  static getTotalUnreadCount(userId) {
+    return Message.countDocuments({
+      recipientId: userId,
+      seen: false
+    })
+  }
+  static findAdmin() {
+    return User.findOne({ role: "admin" }).select("_id role").lean()
+  }
+
+  static findUserById(userId) {
+    return User.findById(userId).select("_id role").lean()
+  }
 }
 
 export default ChatRepository

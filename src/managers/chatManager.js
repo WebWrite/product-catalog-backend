@@ -5,25 +5,50 @@ import { HTTP_STATUS } from "../constants/statusCodes.js"
 import AppError from "../utils/AppError.js"
 
 class ChatManager {
-  static async createChat(user, { sellerId } = {}) {
-    if (user.role !== "customer") {
+  static async createChat(user, payload = {}) {
+    let otherUser
+
+    if (user.role === "customer") {
+      const { sellerId } = payload
+
+      if (!sellerId || !mongoose.isValidObjectId(sellerId)) {
+        throw new AppError(
+          ERROR_MESSAGES.INVALID_OBJECT_ID,
+          HTTP_STATUS.BAD_REQUEST
+        )
+      }
+
+      otherUser = await ChatRepository.findSellerById(sellerId)
+
+      if (!otherUser) {
+        throw new AppError(
+          ERROR_MESSAGES.SELLER_NOT_FOUND,
+          HTTP_STATUS.NOT_FOUND
+        )
+      }
+    } else if (user.role === "seller") {
+      const { participantId } = payload
+
+      if (!participantId || !mongoose.isValidObjectId(participantId)) {
+        throw new AppError(
+          ERROR_MESSAGES.INVALID_OBJECT_ID,
+          HTTP_STATUS.BAD_REQUEST
+        )
+      }
+
+      otherUser = await ChatRepository.findUserById(participantId)
+
+      if (!otherUser || otherUser.role !== "customer") {
+        throw new AppError(
+          ERROR_MESSAGES.RESOURCE_NOT_FOUND,
+          HTTP_STATUS.NOT_FOUND
+        )
+      }
+    } else {
       throw new AppError(ERROR_MESSAGES.FORBIDDEN, HTTP_STATUS.FORBIDDEN)
     }
 
-    if (!sellerId || !mongoose.isValidObjectId(sellerId)) {
-      throw new AppError(
-        ERROR_MESSAGES.INVALID_OBJECT_ID,
-        HTTP_STATUS.BAD_REQUEST
-      )
-    }
-
-    const seller = await ChatRepository.findSellerById(sellerId)
-
-    if (!seller) {
-      throw new AppError(ERROR_MESSAGES.SELLER_NOT_FOUND, HTTP_STATUS.NOT_FOUND)
-    }
-
-    const participantIds = [user.userId, seller._id.toString()]
+    const participantIds = [user.userId, otherUser._id.toString()]
 
     const conversation = await ChatRepository.findOrCreateConversation({
       type: "buyer_seller",
@@ -146,6 +171,62 @@ class ChatManager {
     )
 
     return message
+  }
+  static async getTotalUnreadCount(userId) {
+    return ChatRepository.getTotalUnreadCount(userId)
+  }
+
+  static async createAdminChat(user, { participantId } = {}) {
+    let otherUser
+    let type
+
+    if (user.role === "admin") {
+      if (!participantId || !mongoose.isValidObjectId(participantId)) {
+        throw new AppError(
+          ERROR_MESSAGES.INVALID_OBJECT_ID,
+          HTTP_STATUS.BAD_REQUEST
+        )
+      }
+
+      otherUser = await ChatRepository.findUserById(participantId)
+
+      if (!otherUser || !["customer", "seller"].includes(otherUser.role)) {
+        throw new AppError(
+          ERROR_MESSAGES.RESOURCE_NOT_FOUND,
+          HTTP_STATUS.NOT_FOUND
+        )
+      }
+
+      type = otherUser.role === "seller" ? "admin_seller" : "buyer_admin"
+    } else if (["customer", "seller"].includes(user.role)) {
+      otherUser = await ChatRepository.findAdmin()
+
+      if (!otherUser) {
+        throw new AppError(
+          ERROR_MESSAGES.RESOURCE_NOT_FOUND,
+          HTTP_STATUS.NOT_FOUND
+        )
+      }
+
+      type = user.role === "seller" ? "admin_seller" : "buyer_admin"
+    } else {
+      throw new AppError(ERROR_MESSAGES.FORBIDDEN, HTTP_STATUS.FORBIDDEN)
+    }
+
+    const participantIds = [user.userId, otherUser._id.toString()]
+
+    const conversation = await ChatRepository.findOrCreateConversation({
+      type,
+      participantIds
+    })
+
+    const roomId = conversation._id.toString()
+
+    await ChatRepository.markMessagesAsSeen(roomId, user.userId)
+
+    const messages = await ChatRepository.getMessages(roomId)
+
+    return { roomId, messages }
   }
 }
 

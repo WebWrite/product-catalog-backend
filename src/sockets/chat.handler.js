@@ -5,6 +5,10 @@ const registerChatHandlers = (io, socket) => {
     ChatSocketController.createChat(socket, payload, callback)
   })
 
+  socket.on("create_admin_chat", (payload, callback) => {
+    ChatSocketController.createAdminChat(socket, payload, callback)
+  })
+
   socket.on("join_room", (payload, callback) => {
     ChatSocketController.joinRoom(socket, payload, callback)
   })

@@ -58,7 +58,16 @@ class ChatSocketController {
       const savedMessage = message.toObject()
       const roomId = savedMessage.roomId.toString()
 
+      const recipientId = savedMessage.recipientId.toString()
+
       io.to(roomId).emit("new_message", savedMessage)
+
+      io.to(`user:${recipientId}`).emit("new_message_notification", {
+        roomId,
+        messageId: savedMessage._id.toString(),
+        senderId: savedMessage.senderId.toString(),
+        text: savedMessage.text
+      })
 
       callback?.({
         success: true,
@@ -105,6 +114,36 @@ class ChatSocketController {
       userId: socket.data.user.userId,
       isTyping
     })
+  }
+
+  static async getTotalUnreadCount(req, res) {
+    const unreadCount = await ChatManager.getTotalUnreadCount(req.user.id)
+
+    return res.status(HTTP_STATUS.OK).json({
+      success: true,
+      data: { unreadCount }
+    })
+  }
+
+  static async createAdminChat(socket, payload, callback) {
+    try {
+      const { roomId, messages } = await ChatManager.createAdminChat(
+        socket.data.user,
+        payload
+      )
+
+      await socket.join(roomId)
+
+      callback?.({ success: true, roomId, messages })
+    } catch (error) {
+      callback?.({
+        success: false,
+        statusCode: error.statusCode || 500,
+        message: error.isOperational
+          ? error.message
+          : "Unable to create admin chat"
+      })
+    }
   }
 }
 

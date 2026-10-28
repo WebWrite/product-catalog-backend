@@ -11,4 +11,10 @@ router.get(
   asyncHandler(ChatController.getConversations)
 )
 
+router.get(
+  "/unread-count",
+  authentication,
+  asyncHandler(ChatController.getTotalUnreadCount)
+)
+
 export default router
