@@ -17,12 +17,26 @@ export const countSellerProducts = (sellerId, filter) => {
   return Product.countDocuments({ sellerId, ...filter })
 }
 export const getSellerProductStats = async (sellerId) => {
-  const [totalProducts, activeProducts] = await Promise.all([
-    Product.countDocuments({ sellerId }),
-    Product.countDocuments({ sellerId, status: "active" })
-  ])
+  const [totalProducts, activeProducts, lowStockProducts, deadStockProducts] =
+    await Promise.all([
+      Product.countDocuments({ sellerId }),
+      Product.countDocuments({ sellerId, status: "active" }),
+      Product.countDocuments({
+        sellerId,
+        stock: { $gt: 0, $lte: 10 }
+      }),
+      Product.countDocuments({
+        sellerId,
+        stock: 0
+      })
+    ])
 
-  return { totalProducts, activeProducts }
+  return {
+    totalProducts,
+    activeProducts,
+    lowStockProducts,
+    deadStockProducts
+  }
 }
 
 export const getSellerInventoryHealth = async (sellerId) => {

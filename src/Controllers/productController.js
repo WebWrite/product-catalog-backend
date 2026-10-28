@@ -36,14 +36,22 @@ export const addProduct = async (req, res) => {
 }
 
 export const getSellerProducts = async (req, res) => {
-  const { category, search, sortBy = "newest" } = req.query
+  const { category, search, stockStatus, sortBy = "newest" } = req.query
 
   const page = Math.max(1, Number(req.query.page) || 1)
   const limit = Math.min(50, Math.max(1, Number(req.query.limit) || 10))
 
+  if (
+    stockStatus &&
+    !["inStock", "lowStock", "deadStock"].includes(stockStatus)
+  ) {
+    throw new AppError(ERROR_MESSAGES.INVALID_REQUEST, HTTP_STATUS.BAD_REQUEST)
+  }
+
   const result = await getSellerProductsManager(req.user.id, {
     category,
     search,
+    stockStatus,
     sortBy,
     page,
     limit

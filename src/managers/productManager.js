@@ -47,13 +47,29 @@ export const createProduct = async (data, sellerId, imageBuffer) => {
 }
 
 export const getSellerProductsManager = async (sellerId, options) => {
-  const { category, search, sortBy = "newest", page = 1, limit = 10 } = options
+  const {
+    category,
+    search,
+    stockStatus,
+    sortBy = "newest",
+    page = 1,
+    limit = 10
+  } = options
+
   const filter = {}
 
   if (category) filter.category = category
 
   if (search?.trim()) {
     filter.name = { $regex: search.trim(), $options: "i" }
+  }
+
+  if (stockStatus === "inStock") {
+    filter.stock = { $gt: 10 }
+  } else if (stockStatus === "lowStock") {
+    filter.stock = { $gt: 0, $lte: 10 }
+  } else if (stockStatus === "deadStock") {
+    filter.stock = 0
   }
 
   const sortOptions = {
