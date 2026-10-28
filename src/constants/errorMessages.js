@@ -21,6 +21,7 @@ export const ERROR_MESSAGES = Object.freeze({
   INVALID_OBJECT_ID: "Object Id is invalid",
   AUTH_LIMIT: "Too many authentication attempts. Please try again later.",
   VALIDATION_FAILED: "validation failed",
+  ACCOUNT_INACTIVE: "Your account has Inactive by admin",
 
   OTP_EXPIRED: "Otp expired or invalid",
   OTP_INVALID: "Invalid Otp",

@@ -16,10 +16,10 @@ import orderRoutes from "./Routes/order.routes.js"
 import adminRoutes from "./Routes/admin.routes.js"
 import stripeWebHookRoutes from "./Routes/stripewebhook.routes.js"
 import chatRoutes from "./Routes/chat.routes.js"
+import sellerDashboardRoutes from "./Routes/selles.routes.js"
 import authorization from "./middlewares/authorization.middleware.js"
 import authentication from "./middlewares/authentication.middleware.js"
 
-//import userRoutes from "./Routes/user.routes.js"
 export const app = express()
 const baseURL = "/api/v1"
 app.set("trust proxy", 1)
@@ -51,6 +51,12 @@ app.use(
 )
 app.use(`${baseURL}`, sellerRoutes)
 app.use(`${baseURL}`, orderRoutes)
+app.use(
+  `${baseURL}`,
+  authentication("accessToken", process.env.ACCESS_TOKEN_SECRET_KEY),
+  authorization("seller"),
+  sellerDashboardRoutes
+)
 app.use(
   `${baseURL}/admin`,
   authentication("accessToken", process.env.ACCESS_TOKEN_SECRET_KEY),

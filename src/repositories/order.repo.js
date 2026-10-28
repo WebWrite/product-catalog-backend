@@ -1,4 +1,5 @@
 import { HTTP_STATUS } from "../constants/statusCodes.js"
+import mongoose from "mongoose"
 import Order from "../models/Order.js"
 import Product from "../models/Product.js"
 import StockHistory from "../models/StockHistory.js"
@@ -196,6 +197,78 @@ class OrderRepository {
     }
 
     return order.save()
+  }
+
+  static getSellerSalesStats(sellerId) {
+    const sellerObjectId = new mongoose.Types.ObjectId(sellerId)
+
+    return Order.aggregate([
+      {
+        $match: {
+          "items.sellerId": sellerObjectId,
+          paymentStatus: { $ne: "failed" }
+        }
+      },
+      { $unwind: "$items" },
+      {
+        $match: {
+          "items.sellerId": sellerObjectId,
+          "items.status": { $ne: "cancelled" }
+        }
+      },
+      {
+        $group: {
+          _id: "$_id",
+          sales: { $sum: "$items.itemTotal" }
+        }
+      },
+      {
+        $group: {
+          _id: null,
+          totalOrders: { $sum: 1 },
+          totalSales: { $sum: "$sales" }
+        }
+      }
+    ])
+  }
+
+  static getSellerMonthlySales(sellerId, startDate, endDate) {
+    const sellerObjectId = new mongoose.Types.ObjectId(sellerId)
+
+    return Order.aggregate([
+      {
+        $match: {
+          "items.sellerId": sellerObjectId,
+          paymentStatus: { $ne: "failed" },
+          createdAt: { $gte: startDate, $lt: endDate }
+        }
+      },
+      { $unwind: "$items" },
+      {
+        $match: {
+          "items.sellerId": sellerObjectId,
+          "items.status": { $ne: "cancelled" }
+        }
+      },
+      {
+        $group: {
+          _id: {
+            orderId: "$_id",
+            year: { $year: { date: "$createdAt", timezone: "UTC" } },
+            month: { $month: { date: "$createdAt", timezone: "UTC" } }
+          },
+          sales: { $sum: "$items.itemTotal" }
+        }
+      },
+      {
+        $group: {
+          _id: { year: "$_id.year", month: "$_id.month" },
+          orders: { $sum: 1 },
+          sales: { $sum: "$sales" }
+        }
+      },
+      { $sort: { "_id.year": 1, "_id.month": 1 } }
+    ])
   }
 }
 

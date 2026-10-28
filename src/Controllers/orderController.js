@@ -75,6 +75,7 @@ class OrderController {
       data: result
     })
   }
+
   static async retryStripePayment(req, res) {
     const result = await OrderManager.retryStripePayment(
       req.user.id,
