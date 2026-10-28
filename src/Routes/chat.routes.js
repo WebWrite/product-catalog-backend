@@ -13,7 +13,7 @@ router.get(
 
 router.get(
   "/unread-count",
-  authentication,
+  authentication("accessToken", process.env.ACCESS_TOKEN_SECRET_KEY),
   asyncHandler(ChatController.getTotalUnreadCount)
 )
 
