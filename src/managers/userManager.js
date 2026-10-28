@@ -133,6 +133,7 @@ class UserManager {
     let user = await UserRepository.finUserbyId(id)
     let cart = await CartRepository.findUserCartCount(id)
     return {
+      id: user.id,
       name: user.name,
       email: user.email,
       role: user.role,

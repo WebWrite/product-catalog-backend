@@ -30,7 +30,7 @@ class ChatSocketController {
 
       await socket.join(roomId)
 
-      socket.to(roomId).emit("messages_seen")
+      socket.to(roomId).emit("messages_seen", { roomId: roomId.toString() })
 
       callback?.({ success: true, roomId, messages })
     } catch (error) {
@@ -91,6 +91,7 @@ class ChatSocketController {
 
       if (message) {
         socket.to(message.roomId.toString()).emit("message_seen", {
+          roomId: message.roomId.toString(),
           messageId: message._id.toString()
         })
       }

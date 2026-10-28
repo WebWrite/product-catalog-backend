@@ -9,16 +9,16 @@ class ChatManager {
     let otherUser
 
     if (user.role === "customer") {
-      const { sellerId } = payload
+      const { participantId } = payload
 
-      if (!sellerId || !mongoose.isValidObjectId(sellerId)) {
+      if (!participantId || !mongoose.isValidObjectId(participantId)) {
         throw new AppError(
           ERROR_MESSAGES.INVALID_OBJECT_ID,
           HTTP_STATUS.BAD_REQUEST
         )
       }
 
-      otherUser = await ChatRepository.findSellerById(sellerId)
+      otherUser = await ChatRepository.findSellerById(participantId)
 
       if (!otherUser) {
         throw new AppError(

@@ -43,27 +43,12 @@ app.use(express.urlencoded({ extended: true }))
 app.use(requestLogger)
 app.use(`${baseURL}/auth`, authRoutes)
 app.use(`${baseURL}/user`, userRoutes)
-app.use(
-  `${baseURL}/cart`,
-  authentication("accessToken", process.env.ACCESS_TOKEN_SECRET_KEY),
-  authorization("customer"),
-  cartRoutes
-)
+app.use(`${baseURL}/chat`, chatRoutes)
+app.use(`${baseURL}/cart`, cartRoutes)
 app.use(`${baseURL}`, sellerRoutes)
 app.use(`${baseURL}`, orderRoutes)
-app.use(
-  `${baseURL}`,
-  authentication("accessToken", process.env.ACCESS_TOKEN_SECRET_KEY),
-  authorization("seller"),
-  sellerDashboardRoutes
-)
-app.use(
-  `${baseURL}/admin`,
-  authentication("accessToken", process.env.ACCESS_TOKEN_SECRET_KEY),
-  authorization("admin"),
-  adminRoutes
-)
-app.use(`${baseURL}/chat`, chatRoutes)
+app.use(`${baseURL}`, sellerDashboardRoutes)
+app.use(`${baseURL}/admin`, adminRoutes)
 
 app.use(notFound)
 

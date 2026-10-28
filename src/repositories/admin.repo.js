@@ -374,7 +374,7 @@ class AdminRepository {
     let usersQuery = User.find({
       role: "seller",
       ...filter
-    }).select("name email status createdAt")
+    }).select("_id name email status createdAt")
 
     if (category) {
       const sellerIds = await Product.distinct("sellerId", {
@@ -465,6 +465,7 @@ class AdminRepository {
         }
 
         return {
+          userId: seller._id,
           _id: seller.profile?._id || null,
           name: seller.name,
           email: seller.email,

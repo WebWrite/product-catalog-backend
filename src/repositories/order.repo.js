@@ -111,15 +111,15 @@ class OrderRepository {
     )
   }
 
-  static findOrdersBySellerId(sellerId) {
-    return Order.find({ "items.sellerId": sellerId })
+  static async findOrdersBySellerId(sellerId) {
+    return await Order.find({ "items.sellerId": sellerId })
       .sort({ createdAt: -1 })
       .select(
         "_id customerId items shippingAddress subtotal shippingCost total paymentMethod paymentStatus createdAt"
       )
       .populate({
         path: "customerId",
-        select: "name email -_id"
+        select: "name email _id"
       })
       .populate({
         path: "items.productId",
