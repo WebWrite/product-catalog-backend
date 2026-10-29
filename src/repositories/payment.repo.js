@@ -5,21 +5,24 @@ class PaymentRepository {
     return Payment.findOne({ orderId }).lean()
   }
 
-  static findBySessionId(sessionId) {
-    return Payment.findOne({ sessionId }).lean()
+  static findBySessionId(sessionId, session) {
+    return Payment.findOne({ sessionId })
+      .session(session ?? null)
+      .lean()
   }
 
   static createPayment(data, session) {
     return Payment.create([data], { session })
   }
 
-  static updatePaymentBySessionId(sessionId, updates) {
+  static updatePaymentBySessionId(sessionId, updates, session) {
     return Payment.findOneAndUpdate(
-      { sessionId },
+      { sessionId, status: "pending" },
       { $set: updates },
       {
         new: true,
-        runValidators: true
+        runValidators: true,
+        session
       }
     )
   }

@@ -136,6 +136,10 @@ const orderSchema = new mongoose.Schema(
       enum: ["pending", "completed", "failed"],
       default: "pending",
       required: true
+    },
+    paymentExpiresAt: {
+      type: Date,
+      default: null
     }
   },
   {
@@ -145,6 +149,7 @@ const orderSchema = new mongoose.Schema(
 
 orderSchema.index({ customerId: 1 })
 orderSchema.index({ "items.sellerId": 1, createdAt: -1 })
+orderSchema.index({ paymentExpiresAt: 1 }, { expireAfterSeconds: 0 })
 
 const Order = mongoose.model("Order", orderSchema)
 

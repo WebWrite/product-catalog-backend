@@ -183,20 +183,31 @@ class OrderRepository {
     )
   }
 
-  static async updateOrderPaymentStatus(orderId, paymentStatus) {
-    const order = await Order.findById(orderId)
-
-    if (!order) return null
-
-    order.paymentStatus = paymentStatus
+  static updateOrderPaymentStatus(orderId, paymentStatus, session) {
+    const updates = { paymentStatus }
 
     if (paymentStatus === "completed") {
-      order.items.forEach((item) => {
-        item.status = "confirmed"
-      })
+      updates["items.$[].status"] = "confirmed"
     }
 
-    return order.save()
+    const update = { $set: updates }
+
+    if (paymentStatus === "completed") {
+      update.$unset = { paymentExpiresAt: 1 }
+    }
+
+    return Order.findOneAndUpdate(
+      {
+        _id: orderId,
+        paymentStatus: "pending"
+      },
+      update,
+      {
+        new: true,
+        runValidators: true,
+        session
+      }
+    )
   }
 
   static getSellerSalesStats(sellerId) {
@@ -269,6 +280,10 @@ class OrderRepository {
       },
       { $sort: { "_id.year": 1, "_id.month": 1 } }
     ])
+  }
+
+  static findOrderById(orderId, session) {
+    return Order.findById(orderId).session(session ?? null)
   }
 }
 

@@ -3,7 +3,11 @@ import OrderManager from "../managers/orderManager.js"
 
 class OrderController {
   static async createOrder(req, res) {
-    const order = await OrderManager.createCodOrder(req.user.id, req.body)
+    const order = await OrderManager.createCodOrder(
+      req.user.id,
+      req.body,
+      req.requestId
+    )
 
     return res.status(HTTP_STATUS.CREATED).json({
       success: true,
@@ -27,7 +31,8 @@ class OrderController {
     const order = await OrderManager.cancelMyOrderItem(
       req.user.id,
       orderId,
-      itemId
+      itemId,
+      req.requestId
     )
 
     return res.status(HTTP_STATUS.OK).json({
@@ -53,7 +58,8 @@ class OrderController {
       req.user.id,
       orderId,
       itemId,
-      status
+      status,
+      req.requestId
     )
 
     return res.status(HTTP_STATUS.OK).json({
@@ -66,7 +72,8 @@ class OrderController {
   static async placeOrderStripe(req, res) {
     const result = await OrderManager.createStripeCheckout(
       req.user.id,
-      req.body
+      req.body,
+      req.requestId
     )
 
     return res.status(HTTP_STATUS.CREATED).json({
@@ -79,7 +86,8 @@ class OrderController {
   static async retryStripePayment(req, res) {
     const result = await OrderManager.retryStripePayment(
       req.user.id,
-      req.body.orderId
+      req.body.orderId,
+      req.requestId
     )
 
     return res.status(HTTP_STATUS.OK).json({
@@ -92,7 +100,8 @@ class OrderController {
   static async handleStripeWebhook(req, res) {
     await OrderManager.handleStripeWebhook(
       req.body,
-      req.headers["stripe-signature"]
+      req.headers["stripe-signature"],
+      req.requestId
     )
 
     return res.status(200).send("Webhook received")

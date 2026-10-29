@@ -5,6 +5,7 @@ import OrderRepository from "../repositories/order.repo.js"
 import CartRepository from "../repositories/cart.repo.js"
 import stripe from "../config/stripe.js"
 import PaymentRepository from "../repositories/payment.repo.js"
+import ActivityLog from "../models/AcitivtyLog.js"
 
 const SHIPPING_COST = 10
 
@@ -37,7 +38,7 @@ const getProductSize = (product, requestedSize) => {
 }
 
 class OrderManager {
-  static async createCodOrder(customerId, data) {
+  static async createCodOrder(customerId, data, requestId) {
     if (!mongoose.isObjectIdOrHexString(customerId)) {
       throw new AppError("Invalid customer ID.", HTTP_STATUS.BAD_REQUEST)
     }
@@ -149,7 +150,23 @@ class OrderManager {
         if (result.matchedCount !== 1) {
           throw new AppError("Unable to clear the cart.", HTTP_STATUS.CONFLICT)
         }
+
         createdOrder = order
+
+        await ActivityLog.create({
+          userId: customerId,
+          action: "ORDER_CREATED",
+          target: "Order",
+          role: "customer",
+          status: "success",
+          message: "Customer created a COD order",
+          requestId,
+          metadata: {
+            orderId: order._id,
+            paymentMethod: "COD",
+            total: order.total
+          }
+        })
       })
 
       return createdOrder
@@ -162,7 +179,7 @@ class OrderManager {
     return OrderRepository.findOrdersByCustomerId(customerId)
   }
 
-  static async cancelMyOrderItem(customerId, orderId, itemId) {
+  static async cancelMyOrderItem(customerId, orderId, itemId, requestId) {
     const session = await mongoose.startSession()
 
     try {
@@ -213,6 +230,20 @@ class OrderManager {
         (item) => item._id.toString() === itemId
       )
 
+      await ActivityLog.create({
+        userId: customerId,
+        action: "ORDER_ITEM_CANCELLED",
+        target: "Order",
+        role: "customer",
+        status: "success",
+        message: "Customer cancelled an order item",
+        requestId,
+        metadata: {
+          orderId: updatedOrder._id,
+          itemId
+        }
+      })
+
       return {
         _id: updatedOrder._id,
         shippingAddress: updatedOrder.shippingAddress,
@@ -231,7 +262,8 @@ class OrderManager {
     sellerId,
     orderId,
     itemId,
-    status
+    status,
+    requestId
   ) {
     const session = await mongoose.startSession()
 
@@ -256,10 +288,10 @@ class OrderManager {
         const item = order.items.find((item) => item._id.toString() === itemId)
 
         if (order.paymentMethod === "STRIPE") {
-          if (
-            (item.status === "pending" && status !== "cancelled") ||
-            (item.status === "confirmed" && status !== "delivered")
-          ) {
+          if (!(
+            (item.status === "pending" && status === "cancelled") ||
+            (item.status === "confirmed" && status === "delivered")
+          )) {
             throw new AppError(
               "Invalid item status transition.",
               HTTP_STATUS.BAD_REQUEST
@@ -307,6 +339,21 @@ class OrderManager {
         (item) => item._id.toString() === itemId
       )
 
+      await ActivityLog.create({
+        userId: sellerId,
+        action: "ORDER_ITEM_STATUS_UPDATED",
+        target: "Order",
+        role: "seller",
+        status: "success",
+        message: `Seller updated an order item status to ${status}`,
+        requestId,
+        metadata: {
+          orderId: updatedOrder._id,
+          itemId,
+          newStatus: status
+        }
+      })
+
       return {
         _id: updatedOrder._id,
         items: [updatedItem]
@@ -316,7 +363,7 @@ class OrderManager {
     }
   }
 
-  static async createStripeCheckout(customerId, data) {
+  static async createStripeCheckout(customerId, data, requestId) {
     const cart = await CartRepository.getCartForOrder(customerId)
 
     if (!cart?.items?.length) {
@@ -329,7 +376,7 @@ class OrderManager {
 
     const items = cart.items.map((cartItem) => {
       const product = products.find(
-        (product) => product._id.toString() === cartItem.productId.toString()
+        (item) => item._id.toString() === cartItem.productId.toString()
       )
 
       if (!product || product.status !== "active") {
@@ -347,39 +394,37 @@ class OrderManager {
       }
 
       return {
-        productId: product._id.toString(),
-        sellerId: product.sellerId.toString(),
+        productId: product._id,
+        sellerId: product.sellerId,
         name: product.name,
         price: product.price,
         quantity: cartItem.quantity,
         itemTotal: product.price * cartItem.quantity,
-        size: getProductSize(product, cartItem.size)
+        size: getProductSize(product, cartItem.size),
+        status: "pending"
       }
     })
 
-    const shippingAddress = {
-      ...data.shippingAddress,
-      phone: `+92${data.shippingAddress.phone}`
-    }
-
     const subtotal = items.reduce((sum, item) => sum + item.itemTotal, 0)
+
     const total = subtotal + SHIPPING_COST
 
-    const checkoutData = JSON.stringify({
-      customerId: customerId.toString(),
+    const paymentExpiresAt = new Date(Date.now() + 2 * 60 * 1000)
+
+    const [order] = await OrderRepository.createOrder({
+      customerId,
       items,
-      shippingAddress,
+      shippingAddress: {
+        ...data.shippingAddress,
+        phone: `+92${data.shippingAddress.phone}`
+      },
       subtotal,
       shippingCost: SHIPPING_COST,
-      total
+      total,
+      paymentMethod: "STRIPE",
+      paymentStatus: "pending",
+      paymentExpiresAt
     })
-
-    if (checkoutData.length > 450) {
-      throw new AppError(
-        "Checkout details are too large for Stripe metadata.",
-        HTTP_STATUS.BAD_REQUEST
-      )
-    }
 
     const lineItems = items.map((item) => ({
       price_data: {
@@ -402,20 +447,42 @@ class OrderManager {
     const checkoutSession = await stripe.checkout.sessions.create({
       mode: "payment",
       line_items: lineItems,
-      client_reference_id: customerId.toString(),
-      metadata: {
-        checkoutData
-      },
       success_url: `${process.env.CLIENT_URL}/payment/success?session_id={CHECKOUT_SESSION_ID}`,
       cancel_url: `${process.env.CLIENT_URL}/payment/cancelled`
     })
 
+    await PaymentRepository.createPayment({
+      orderId: order._id,
+      provider: "stripe",
+      sessionId: checkoutSession.id,
+      amount: total,
+      currency: "PKR",
+      status: "pending"
+    })
+
+    await ActivityLog.create({
+      userId: customerId,
+      action: "STRIPE_CHECKOUT_CREATED",
+      target: "Payment",
+      role: "customer",
+      status: "success",
+      message: "Customer created a Stripe checkout session",
+      requestId,
+      metadata: {
+        orderId: order._id,
+        sessionId: checkoutSession.id,
+        paymentMethod: "STRIPE",
+        total
+      }
+    })
+
     return {
+      orderId: order._id,
       checkoutUrl: checkoutSession.url
     }
   }
 
-  static async handleStripeWebhook(rawBody, signature) {
+  static async handleStripeWebhook(rawBody, signature, requestId) {
     let event
 
     try {
@@ -433,58 +500,89 @@ class OrderManager {
 
     const checkoutSession = event.data.object
 
-    if (
-      event.type !== "checkout.session.completed" ||
-      checkoutSession.payment_status !== "paid"
-    ) {
-      return
-    }
+    const isSuccess =
+      event.type === "checkout.session.completed" &&
+      checkoutSession.payment_status === "paid"
 
-    let checkoutData
+    const isFailed = [
+      "checkout.session.async_payment_failed",
+      "checkout.session.expired"
+    ].includes(event.type)
 
-    try {
-      checkoutData = JSON.parse(checkoutSession.metadata?.checkoutData)
-    } catch {
-      throw new AppError("Invalid checkout metadata.", HTTP_STATUS.BAD_REQUEST)
-    }
-
-    const {
-      customerId,
-      items,
-      shippingAddress,
-      subtotal,
-      shippingCost,
-      total
-    } = checkoutData
-
-    if (
-      !mongoose.isValidObjectId(customerId) ||
-      checkoutSession.client_reference_id !== customerId ||
-      checkoutSession.amount_total !== Math.round(total * 100) ||
-      checkoutSession.currency?.toLowerCase() !== "pkr"
-    ) {
-      throw new AppError("Invalid checkout details.", HTTP_STATUS.BAD_REQUEST)
-    }
-
-    const existingPayment = await PaymentRepository.findBySessionId(
-      checkoutSession.id
-    )
-
-    if (existingPayment) return
+    if (!isSuccess && !isFailed) return
 
     const dbSession = await mongoose.startSession()
 
     try {
       await dbSession.withTransaction(async () => {
-        const paymentExists = await PaymentRepository.findBySessionId(
-          checkoutSession.id
+        const payment = await PaymentRepository.findBySessionId(
+          checkoutSession.id,
+          dbSession
         )
 
-        if (paymentExists) return
+        if (!payment || payment.status !== "pending") return
+
+        const order = await OrderRepository.findOrderById(
+          payment.orderId,
+          dbSession
+        )
+
+        if (!order || order.paymentStatus !== "pending") return
+
+        if (!order.items.every((item) => item.status === "pending")) return
+
+        if (isFailed) {
+          await PaymentRepository.updatePaymentBySessionId(
+            checkoutSession.id,
+            { status: "failed" },
+            dbSession
+          )
+
+          await OrderRepository.updateOrderPaymentStatus(
+            order._id,
+            "failed",
+            dbSession
+          )
+          await ActivityLog.create(
+            [
+              {
+                userId: order.customerId,
+                action: "STRIPE_PAYMENT_FAILED",
+                target: "Payment",
+                role: "customer",
+                status: "failure",
+                message: "Stripe payment failed or checkout expired",
+                requestId,
+                metadata: {
+                  orderId: order._id,
+                  paymentId: payment._id,
+                  sessionId: checkoutSession.id,
+                  stripeEventId: event.id,
+                  eventType: event.type
+                }
+              }
+            ],
+            { session: dbSession }
+          )
+
+          return
+        }
+
+        if (
+          checkoutSession.amount_total !== Math.round(order.total * 100) ||
+          checkoutSession.amount_total !== Math.round(payment.amount * 100) ||
+          checkoutSession.currency?.toLowerCase() !==
+            payment.currency.toLowerCase()
+        ) {
+          throw new AppError(
+            "Invalid payment details.",
+            HTTP_STATUS.BAD_REQUEST
+          )
+        }
 
         const historyEntries = []
 
-        for (const item of items) {
+        for (const item of order.items) {
           const product = await OrderRepository.decreaseStockForOrder(
             item.productId,
             item.quantity,
@@ -500,63 +598,59 @@ class OrderManager {
 
           historyEntries.push({
             productId: product._id,
-            sellerId: product.sellerId,
+            sellerId: item.sellerId,
             previousStock: product.stock + item.quantity,
             newStock: product.stock,
             reason: "order"
           })
         }
 
-        const [order] = await OrderRepository.createOrder(
-          {
-            customerId,
-            items: items.map((item) => ({
-              ...item,
-              status: "confirmed"
-            })),
-            shippingAddress,
-            subtotal,
-            shippingCost,
-            total,
-            paymentMethod: "STRIPE",
-            paymentStatus: "completed"
-          },
+        await OrderRepository.createOrderStockHistory(historyEntries, dbSession)
+
+        await OrderRepository.updateOrderPaymentStatus(
+          order._id,
+          "completed",
           dbSession
         )
 
-        await OrderRepository.createOrderStockHistory(historyEntries, dbSession)
-
-        await PaymentRepository.createPayment(
+        await PaymentRepository.updatePaymentBySessionId(
+          checkoutSession.id,
           {
-            orderId: order._id,
-            provider: "stripe",
-            sessionId: checkoutSession.id,
-            paymentIntentId:
-              typeof checkoutSession.payment_intent === "string"
-                ? checkoutSession.payment_intent
-                : undefined,
-            amount: total,
-            currency: "PKR",
             status: "completed"
           },
           dbSession
         )
 
-        const result = await CartRepository.clearCartForOrder(
-          customerId,
-          dbSession
+        await CartRepository.clearCartForOrder(order.customerId, dbSession)
+        await ActivityLog.create(
+          [
+            {
+              userId: order.customerId,
+              action: "STRIPE_PAYMENT_COMPLETED",
+              target: "Payment",
+              role: "customer",
+              status: "success",
+              message: "Stripe payment completed successfully",
+              requestId,
+              metadata: {
+                orderId: order._id,
+                paymentId: payment._id,
+                sessionId: checkoutSession.id,
+                stripeEventId: event.id,
+                amount: payment.amount,
+                currency: payment.currency
+              }
+            }
+          ],
+          { session: dbSession }
         )
-
-        if (result.matchedCount !== 1) {
-          throw new AppError("Unable to clear the cart.", HTTP_STATUS.CONFLICT)
-        }
       })
     } finally {
       await dbSession.endSession()
     }
   }
 
-  static async retryStripePayment(customerId, orderId) {
+  static async retryStripePayment(customerId, orderId, requestId) {
     if (!mongoose.isValidObjectId(orderId)) {
       throw new AppError("Invalid order ID.", HTTP_STATUS.BAD_REQUEST)
     }
@@ -565,6 +659,27 @@ class OrderManager {
 
     if (!order) {
       throw new AppError("Order not found.", HTTP_STATUS.NOT_FOUND)
+    }
+
+    const cart = await CartRepository.getCartForOrder(customerId)
+
+    const cartItems = new Set(
+      (cart?.items ?? []).map(
+        (item) => `${item.productId}:${item.quantity}:${item.size ?? ""}`
+      )
+    )
+
+    const isCartMatchingOrder =
+      cartItems.size === order.items.length &&
+      order.items.every((item) =>
+        cartItems.has(`${item.productId}:${item.quantity}:${item.size ?? ""}`)
+      )
+
+    if (!isCartMatchingOrder) {
+      throw new AppError(
+        "Your current cart does not match this order. Make a new order",
+        HTTP_STATUS.CONFLICT
+      )
     }
 
     const allItemsPending =
@@ -608,6 +723,16 @@ class OrderManager {
       },
       quantity: item.quantity
     }))
+    lineItems.push({
+      price_data: {
+        currency: "pkr",
+        product_data: {
+          name: "Delivery"
+        },
+        unit_amount: Math.round(order.shippingCost * 100)
+      },
+      quantity: 1
+    })
 
     const checkoutSession = await stripe.checkout.sessions.create({
       mode: "payment",
@@ -629,6 +754,20 @@ class OrderManager {
         HTTP_STATUS.NOT_FOUND
       )
     }
+
+    await ActivityLog.create({
+      userId: customerId,
+      action: "STRIPE_PAYMENT_RETRY_CREATED",
+      target: "Payment",
+      role: "customer",
+      status: "success",
+      message: "Customer retried Stripe payment",
+      requestId,
+      metadata: {
+        orderId: order._id,
+        sessionId: checkoutSession.id
+      }
+    })
 
     return {
       orderId: order._id,
