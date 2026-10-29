@@ -1,5 +1,8 @@
+import { ERROR_MESSAGES } from "../constants/errorMessages.js"
 import { HTTP_STATUS } from "../constants/statusCodes.js"
 import ChatManager from "../managers/chatManager.js"
+import AppError from "../utils/AppError.js"
+import { uploadChatAttachments } from "../utils/chatAttachement.util.js"
 
 class ChatSocketController {
   static async createChat(socket, payload, callback) {
@@ -66,7 +69,8 @@ class ChatSocketController {
         roomId,
         messageId: savedMessage._id.toString(),
         senderId: savedMessage.senderId.toString(),
-        text: savedMessage.text
+        text: savedMessage.text,
+        hasAttachment: Boolean(savedMessage.attachment)
       })
 
       callback?.({
@@ -145,6 +149,25 @@ class ChatSocketController {
           : "Unable to create admin chat"
       })
     }
+  }
+  static async UploadAttachment(req, res) {
+    if (!req.file) {
+      throw new AppError(
+        ERROR_MESSAGES.IMAGE_NOT_SELECT,
+        HTTP_STATUS.BAD_REQUEST
+      )
+    }
+    const attachment = await uploadChatAttachments(req.file.buffer)
+    return res.status(HTTP_STATUS.OK).json({
+      success: true,
+      data: {
+        attachment: {
+          type: "image",
+          url: attachment.url,
+          publicId: attachment.publicId
+        }
+      }
+    })
   }
 }
 

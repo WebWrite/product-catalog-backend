@@ -1,4 +1,3 @@
-import mongoose from "mongoose"
 import { ERROR_MESSAGES } from "../constants/errorMessages.js"
 import { HTTP_STATUS } from "../constants/statusCodes.js"
 import { SUCCESS_MESSAGES } from "../constants/successMessages.js"
@@ -21,7 +20,7 @@ export const addProduct = async (req, res) => {
 
   await logActivity({
     userId: req.user.id,
-    action: "PRODUCT_CREATED",
+    action: "PRODUCT CREATED",
     target: "Product",
     role: req.user.role,
     message: "Seller created a product",
@@ -80,7 +79,7 @@ export const deleteProduct = async (req, res) => {
 
   await logActivity({
     userId: req.user.id,
-    action: "PRODUCT_DELETED",
+    action: "PRODUCT DELETED",
     target: "Product",
     role: req.user.role,
     message: "Seller deleted a product",
@@ -102,7 +101,7 @@ export const bulkDeleteProducts = async (req, res) => {
 
   await logActivity({
     userId: req.user.id,
-    action: "PRODUCTS_BULK_DELETED",
+    action: "PRODUCTS BULK DELETED",
     target: "Product",
     role: req.user.role,
     message: "Seller deleted multiple products",
@@ -129,7 +128,7 @@ export const updateProductStock = async (req, res) => {
 
   await logActivity({
     userId: req.user.id,
-    action: "PRODUCT_STOCK_UPDATED",
+    action: "PRODUCT STOCK UPDATED",
     target: "Product",
     role: req.user.role,
     message: "Seller updated product stock",
@@ -161,7 +160,7 @@ export const updateProduct = async (req, res) => {
 
   await logActivity({
     userId: req.user.id,
-    action: "PRODUCT_UPDATED",
+    action: "PRODUCT UPDATED",
     target: "Product",
     role: req.user.role,
     message: "Seller updated a product",

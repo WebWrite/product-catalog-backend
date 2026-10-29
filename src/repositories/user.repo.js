@@ -30,7 +30,7 @@ class UserRepository {
   }
 
   static async updateVerifyStatus(email) {
-    await User.findOneAndUpdate({ email }, { isVerified: true })
+    return await User.findOneAndUpdate({ email }, { isVerified: true })
   }
   static async finUserbyId(id) {
     return await User.findOne({ _id: id })

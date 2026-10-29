@@ -5,8 +5,108 @@ import SellerProfile from "../models/seller.profile.model.js"
 import User from "../models/User.js"
 import bcrypt from "bcryptjs"
 import mongoose from "mongoose"
+import ActivityLog from "../models/AcitivtyLog.js"
 
 class AdminRepository {
+  static async getActivityLogs(filter, skip, limit) {
+    const escapeRegex = (value) => value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")
+    const match = {}
+
+    if (filter.role) match.role = filter.role
+    if (filter.target) match.target = filter.target
+    if (filter.dateFrom || filter.dateTo) {
+      match.createdAt = {}
+      if (filter.dateFrom) match.createdAt.$gte = filter.dateFrom
+      if (filter.dateTo) match.createdAt.$lte = filter.dateTo
+    }
+
+    const pipeline = [{ $match: match }]
+
+    if (filter.search) {
+      const searchRegex = new RegExp(escapeRegex(filter.search), "i")
+      pipeline.push(
+        {
+          $lookup: {
+            from: User.collection.name,
+            localField: "userId",
+            foreignField: "_id",
+            as: "user"
+          }
+        },
+        {
+          $unwind: {
+            path: "$user",
+            preserveNullAndEmptyArrays: true
+          }
+        },
+        {
+          $match: {
+            $or: [
+              { action: searchRegex },
+              { target: searchRegex },
+              { message: searchRegex },
+              { "user.name": searchRegex },
+              { "user.email": searchRegex }
+            ]
+          }
+        }
+      )
+    }
+
+    pipeline.push(
+      { $sort: { createdAt: -1, _id: -1 } },
+      {
+        $facet: {
+          logs: [
+            { $skip: skip },
+            { $limit: limit },
+            {
+              $lookup: {
+                from: User.collection.name,
+                localField: "userId",
+                foreignField: "_id",
+                as: "user"
+              }
+            },
+            {
+              $unwind: {
+                path: "$user",
+                preserveNullAndEmptyArrays: true
+              }
+            },
+            {
+              $project: {
+                _id: 1,
+                action: 1,
+                target: 1,
+                role: 1,
+                status: 1,
+                message: 1,
+                requestId: 1,
+                metadata: 1,
+                createdAt: 1,
+                updatedAt: 1,
+                user: {
+                  _id: "$user._id",
+                  name: "$user.name",
+                  email: "$user.email",
+                  role: "$user.role"
+                }
+              }
+            }
+          ],
+          total: [{ $count: "count" }]
+        }
+      }
+    )
+
+    const [result] = await ActivityLog.aggregate(pipeline)
+    return {
+      logs: result?.logs || [],
+      total: result?.total[0]?.count || 0
+    }
+  }
+
   static async sumGrossValue() {
     let result = await Order.aggregate([
       { $unwind: "$items" },

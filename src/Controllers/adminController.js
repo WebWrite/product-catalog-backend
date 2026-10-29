@@ -6,6 +6,52 @@ import { logActivity } from "../utils/activityLog.util.js"
 import AppError from "../utils/AppError.js"
 
 class AdminController {
+  static async getActivityLogs(req, res) {
+    const page = Math.max(parseInt(req.query.page) || 1, 1)
+    const limit = Math.min(Math.max(parseInt(req.query.limit) || 20, 1), 100)
+    const role = req.query.role === "buyer" ? "customer" : req.query.role
+    const validRoles = ["admin", "seller", "customer"]
+
+    if (role && !validRoles.includes(role)) {
+      throw new AppError(
+        "Invalid activity role filter",
+        HTTP_STATUS.BAD_REQUEST
+      )
+    }
+
+    const dateFrom = req.query.dateFrom
+      ? new Date(`${req.query.dateFrom}T00:00:00.000Z`)
+      : undefined
+    const dateTo = req.query.dateTo
+      ? new Date(`${req.query.dateTo}T23:59:59.999Z`)
+      : undefined
+
+    if (
+      (dateFrom && Number.isNaN(dateFrom.getTime())) ||
+      (dateTo && Number.isNaN(dateTo.getTime())) ||
+      (dateFrom && dateTo && dateFrom > dateTo)
+    ) {
+      throw new AppError("Invalid activity date range", HTTP_STATUS.BAD_REQUEST)
+    }
+
+    const logs = await AdminManager.getActivityLogs({
+      page,
+      limit,
+      filter: {
+        search: (req.query.search || "").trim(),
+        role,
+        target: (req.query.target || "").trim() || undefined,
+        dateFrom,
+        dateTo
+      }
+    })
+
+    return res.status(HTTP_STATUS.OK).json({
+      success: true,
+      ...logs
+    })
+  }
+
   static async getSummary(req, res) {
     const summary = await AdminManager.getSummary()
     return res.status(HTTP_STATUS.OK).json({
@@ -135,7 +181,7 @@ class AdminController {
 
     await logActivity({
       userId: req.user.id,
-      action: "PRODUCT_UPDATED",
+      action: "PRODUCT UPDATED",
       target: "Product",
       role: req.user.role,
       message: "Admin updated a product",
@@ -155,7 +201,7 @@ class AdminController {
 
     await logActivity({
       userId: req.user.id,
-      action: "PRODUCT_DELETED",
+      action: "PRODUCT DELETED",
       target: "Product",
       role: req.user.role,
       message: "Admin deleted a product",
@@ -177,6 +223,15 @@ class AdminController {
       itemId,
       status
     )
+    await logActivity({
+      userId: req.user.id,
+      action: "UPDATE ORDER STATUS",
+      target: "Order",
+      role: req.user.role,
+      message: "Admin update the order item status",
+      requestId: req.requestId,
+      metadata: { orderId: order._id }
+    })
 
     return res.status(HTTP_STATUS.OK).json({
       success: true,
@@ -225,6 +280,15 @@ class AdminController {
     if (!seller) {
       throw new AppError(ERROR_MESSAGES.SELLER_NOT_FOUND, HTTP_STATUS.NOT_FOUND)
     }
+    await logActivity({
+      userId: req.user.id,
+      action: "UPDATE SELLER DETAILS",
+      target: "Seller",
+      role: req.user.role,
+      message: "Admin update the seller",
+      requestId: req.requestId,
+      metadata: { sellerId: seller._id }
+    })
 
     return res.status(HTTP_STATUS.OK).json({
       success: true,
@@ -258,6 +322,15 @@ class AdminController {
     if (!customer) {
       throw new AppError(ERROR_MESSAGES.USER_NOT_FOUND, HTTP_STATUS.NOT_FOUND)
     }
+    await logActivity({
+      userId: req.user.id,
+      action: "UPDATE CUSTOMER DETAILS",
+      target: "Seller",
+      role: req.user.role,
+      message: "Admin update the seller",
+      requestId: req.requestId,
+      metadata: { id: customer.id, name: customer.name, email: customer.email }
+    })
 
     return res.status(HTTP_STATUS.OK).json({
       success: true,

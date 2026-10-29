@@ -31,6 +31,7 @@ export const ERROR_MESSAGES = Object.freeze({
   CLOUDINARY_BULK_DELETE_LIMIT:
     "Cannot delete more than 100 product images at once.",
   CLOUDINARY_DELETE_FAILED: "Failed to delete product image from Cloudinary.",
+  IMAGE_NOT_SELECT: "Please select an image",
 
   //Cart
   CART_QUANTITY_EXCEED: "Maximum quantity is 25.",
