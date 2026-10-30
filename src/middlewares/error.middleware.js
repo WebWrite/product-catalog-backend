@@ -1,7 +1,7 @@
 import logger from "../config/logger.js"
 import { ERROR_MESSAGES } from "../constants/errorMessages.js"
 
-const errorHandler = (err, req, res) => {
+const errorHandler = (err, req, res, next) => {
   logger.error({
     message: err.message,
     requestId: req.requestId,

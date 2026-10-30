@@ -283,7 +283,7 @@ class AdminController {
     await logActivity({
       userId: req.user.id,
       action: "UPDATE SELLER DETAILS",
-      target: "Seller",
+      target: "User",
       role: req.user.role,
       message: "Admin update the seller",
       requestId: req.requestId,
@@ -325,9 +325,9 @@ class AdminController {
     await logActivity({
       userId: req.user.id,
       action: "UPDATE CUSTOMER DETAILS",
-      target: "Seller",
+      target: "User",
       role: req.user.role,
-      message: "Admin update the seller",
+      message: "Admin update the customer details",
       requestId: req.requestId,
       metadata: { id: customer.id, name: customer.name, email: customer.email }
     })

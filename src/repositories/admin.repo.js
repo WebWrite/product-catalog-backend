@@ -149,7 +149,7 @@ class AdminRepository {
         $facet: {
           totalOrders: [{ $count: "count" }],
           inTransit: [
-            { $match: { "items.status": "shipped" } },
+            { $match: { "items.status": "pending" } },
             { $count: "count" }
           ],
           deliveredOrders: [
