@@ -18,6 +18,7 @@ const httpServer = createServer(app)
 const runServer = async () => {
   await connectDB()
   connectRedis()
+
   initializeSocket(httpServer)
 
   httpServer.listen(PORT, () => {
