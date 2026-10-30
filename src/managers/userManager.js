@@ -28,6 +28,7 @@ class UserManager {
     const { name, email, password, storeName, storeType } = data
 
     const session = await mongoose.startSession()
+    let createdUser
     try {
       await session.withTransaction(async () => {
         const user = await this.registerUser(
@@ -39,6 +40,7 @@ class UserManager {
           },
           session
         )
+        createdUser = user
         await UserRepository.createSellerProfile(
           {
             storeName,
@@ -51,6 +53,11 @@ class UserManager {
       await OtpUtils.sendOtp(name, email, "signup")
     } finally {
       await session.endSession()
+    }
+    return {
+      id: createdUser.id,
+      email: createdUser.email,
+      role: createdUser.role
     }
   }
   static async Login(data) {
@@ -85,7 +92,15 @@ class UserManager {
   static async verifyEmail(data) {
     const { email, otp } = data
     await OtpUtils.verifyOtp(email, otp, "signup")
-    await UserRepository.updateVerifyStatus(email)
+    let user = await UserRepository.updateVerifyStatus(email)
+    return {
+      id: user.id,
+      name: user.name,
+      email: user.email,
+      role: user.role,
+      isVerified: user.isVerified,
+      status: user.status
+    }
   }
   static async sendLoginOtp(data) {
     const user = await UserUtil.findUserWitEmail(data.email)
@@ -99,6 +114,14 @@ class UserManager {
       throw new AppError(ERROR_MESSAGES.VERIFY_EMAIL, HTTP_STATUS.BAD_REQUEST)
     }
     OtpUtils.sendOtp(user.name, user.email, "signin")
+    return {
+      id: user.id,
+      name: user.name,
+      email: user.email,
+      role: user.role,
+      isVerified: user.isVerified,
+      status: user.status
+    }
   }
 
   static async verifyLoginOtp(data) {
@@ -127,12 +150,21 @@ class UserManager {
       throw new AppError(ERROR_MESSAGES.USER_NOT_FOUND, HTTP_STATUS.NOT_FOUND)
     }
     await OtpUtils.sendOtp(user.name, data.email, "signup")
+    return {
+      id: user.id,
+      name: user.name,
+      email: user.email,
+      role: user.role,
+      isVerified: user.isVerified,
+      status: user.status
+    }
   }
 
   static async findUserById(id) {
     let user = await UserRepository.finUserbyId(id)
     let cart = await CartRepository.findUserCartCount(id)
     return {
+      id: user.id,
       name: user.name,
       email: user.email,
       role: user.role,

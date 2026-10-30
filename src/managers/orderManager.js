@@ -94,7 +94,6 @@ class OrderManager {
           }
         })
 
-        //  Decrease stock and  history entries.
         const historyEntries = []
 
         for (const item of items) {

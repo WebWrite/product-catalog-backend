@@ -11,7 +11,6 @@ import {
   verifyLoginOtpSchema
 } from "../validations/authValidation.js"
 import authLimiter from "../middlewares/rateLimiting.js"
-import UserController from "../Controllers/UserController.js"
 import { asyncHandler } from "../utils/wrapasync.js"
 const router = Router()
 

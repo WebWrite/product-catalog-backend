@@ -16,6 +16,25 @@ import OrderRepository from "../repositories/order.repo.js"
 import transport from "../config/mailer.config.js"
 
 class AdminManager {
+  static async getActivityLogs({ filter, page, limit }) {
+    const skip = (page - 1) * limit
+    const { logs, total } = await AdminRepository.getActivityLogs(
+      filter,
+      skip,
+      limit
+    )
+
+    return {
+      logs,
+      pagination: {
+        page,
+        limit,
+        total,
+        totalPages: Math.ceil(total / limit)
+      }
+    }
+  }
+
   static async getSummary() {
     const [grossValue, totalOrder, totalSeller, totalRgisterAccount] =
       await Promise.all([

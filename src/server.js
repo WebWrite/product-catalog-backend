@@ -6,10 +6,11 @@ import { SUCCESS_MESSAGES } from "./constants/successMessages.js"
 import { connectRedis } from "./config/redis.config.js"
 import { createServer } from "node:http"
 import initializeSocket from "./sockets/socket.js"
+import logger from "./config/logger.js"
 
 const PORT = process.env.PORT
 if (!PORT) {
-  console.log(ERROR_MESSAGES.SERVER_PORT_IS_MISSING)
+  logger.error(ERROR_MESSAGES.SERVER_PORT_IS_MISSING)
 }
 
 const httpServer = createServer(app)
@@ -20,7 +21,7 @@ const runServer = async () => {
   initializeSocket(httpServer)
 
   httpServer.listen(PORT, () => {
-    console.log(`${SUCCESS_MESSAGES.SERVER_IS_RUNNING} on PORT :: ${PORT}`)
+    logger.info(`${SUCCESS_MESSAGES.SERVER_IS_RUNNING} on PORT :: ${PORT}`)
   })
 }
 runServer()

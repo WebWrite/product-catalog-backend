@@ -9,16 +9,16 @@ class ChatManager {
     let otherUser
 
     if (user.role === "customer") {
-      const { sellerId } = payload
+      const { participantId } = payload
 
-      if (!sellerId || !mongoose.isValidObjectId(sellerId)) {
+      if (!participantId || !mongoose.isValidObjectId(participantId)) {
         throw new AppError(
           ERROR_MESSAGES.INVALID_OBJECT_ID,
           HTTP_STATUS.BAD_REQUEST
         )
       }
 
-      otherUser = await ChatRepository.findSellerById(sellerId)
+      otherUser = await ChatRepository.findSellerById(participantId)
 
       if (!otherUser) {
         throw new AppError(
@@ -103,19 +103,40 @@ class ChatManager {
     return ChatRepository.getUserConversations(userId)
   }
 
-  static async sendMessage(user, { roomId, text } = {}) {
+  static async sendMessage(
+    user,
+    { roomId, text = "", attachment = null } = {}
+  ) {
     if (!roomId || !mongoose.isValidObjectId(roomId)) {
       throw new AppError(
         ERROR_MESSAGES.INVALID_OBJECT_ID,
         HTTP_STATUS.BAD_REQUEST
       )
     }
-
-    if (typeof text !== "string" || !text.trim() || text.trim().length > 5000) {
+    if (typeof text !== "string" || text.trim().length > 5000) {
       throw new AppError(
-        "Message must be between 1 and 5000 characters",
+        "Message cannot exceed 5000 characters",
         HTTP_STATUS.BAD_REQUEST
       )
+    }
+
+    const trimmedText = text.trim()
+    if (!trimmedText && !attachment) {
+      throw new AppError(
+        "Message must contain text or an image",
+        HTTP_STATUS.BAD_REQUEST
+      )
+    }
+
+    if (
+      attachment &&
+      (attachment.type !== "image" ||
+        typeof attachment.url !== "string" ||
+        !attachment.url.trim() ||
+        typeof attachment.publicId !== "string" ||
+        !attachment.publicId.trim())
+    ) {
+      throw new AppError("Invalid image attachment", HTTP_STATUS.BAD_REQUEST)
     }
 
     const conversation = await ChatRepository.findConversationById(roomId)
@@ -152,7 +173,14 @@ class ChatManager {
       roomId: conversation._id,
       senderId,
       recipientId,
-      text: text.trim(),
+      text: trimmedText || null,
+      attachment: attachment
+        ? {
+            type: "image",
+            url: attachment.url,
+            publicId: attachment.publicId
+          }
+        : null,
       seen: false
     })
   }

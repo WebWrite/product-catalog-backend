@@ -1,17 +1,24 @@
 import mongoose from "mongoose"
 
-const attachmentSchema = new mongoose.Schema({
-  type: {
-    type: String,
-    enum: ["image", "pdf"],
-    required: true
+const attachmentSchema = new mongoose.Schema(
+  {
+    type: {
+      type: String,
+      enum: ["image", "pdf"],
+      required: true
+    },
+    url: {
+      type: String,
+      required: true,
+      trim: true
+    },
+    publicId: {
+      type: String,
+      required: true
+    }
   },
-  url: {
-    type: String,
-    required: true,
-    trim: true
-  }
-})
+  { _id: false }
+)
 
 const messageSchema = new mongoose.Schema(
   {
