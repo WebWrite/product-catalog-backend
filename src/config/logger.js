@@ -1,4 +1,12 @@
 import winston from "winston"
+import DailyRotateFile from "winston-daily-rotate-file"
+
+const fileTransport = new DailyRotateFile({
+  dirname: "logs",
+  filename: "app-%DATE%.log",
+  datePattern: "YYYY-MM-DD",
+  maxSize: "20m"
+})
 
 const logger = winston.createLogger({
   level: "info",
@@ -22,7 +30,7 @@ const logger = winston.createLogger({
     })
   ),
 
-  transports: [new winston.transports.Console()]
+  transports: [new winston.transports.Console(), fileTransport]
 })
 
 export default logger

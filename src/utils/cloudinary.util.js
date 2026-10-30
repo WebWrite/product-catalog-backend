@@ -75,3 +75,21 @@ export const deleteProductImages = async (publicIds) => {
 
   return result
 }
+
+export const uploadLogFile = async (filePath, fileName) => {
+  const result = await cloudinary.uploader.upload(filePath, {
+    folder: "application-logs",
+    public_id: fileName,
+    resource_type: "raw",
+    overwrite: true
+  })
+
+  if (!result?.secure_url || !result?.public_id) {
+    throw new AppError(
+      "Cloudinary log upload was unsuccessful",
+      HTTP_STATUS.INTERNAL_SERVER_ERROR
+    )
+  }
+
+  return result
+}

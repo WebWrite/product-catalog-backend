@@ -20,7 +20,7 @@ const initializeSocket = (httpServer) => {
     await socket.join(`user:${userId}`)
 
     console.log("Socket connected:", socket.id)
-    console.log("Authenticated user:", socket.data.user)
+    // console.log("Authenticated user:", socket.data.user)
 
     registerChatHandlers(io, socket)
 
