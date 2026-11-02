@@ -5,6 +5,7 @@ import { asyncHandler } from "../utils/wrapasync.js"
 import {
   getSellerDashboardController,
   getSellerInventoryHealthController,
+  getSellerProfileController,
   getSellerSalesByMonthController
 } from "../Controllers/selles.controller.js"
 
@@ -57,6 +58,11 @@ router.get(
   "/seller/inventory-health",
   ...sellerAuthentication,
   asyncHandler(getSellerInventoryHealthController)
+)
+router.get(
+  "/seller/profile",
+  ...sellerAuthentication,
+  asyncHandler(getSellerProfileController)
 )
 
 export default router

@@ -1,4 +1,7 @@
-import { getSellerInventoryHealth } from "../repositories/product.repo.js"
+import {
+  findSellerProfileByUserId,
+  getSellerInventoryHealth
+} from "../repositories/product.repo.js"
 import OrderRepository from "../repositories/order.repo.js"
 
 const getMonthStart = (date) =>
@@ -64,3 +67,20 @@ export const getSellerSalesByMonth = async (sellerId) => {
 
 export const getSellerInventoryHealthManager = (sellerId) =>
   getSellerInventoryHealth(sellerId)
+
+export const getSellerProfileManager = async (sellerId) => {
+  const user = await findSellerProfileByUserId(sellerId)
+
+  if (!user?.sellerProfile) return null
+
+  return {
+    name: user.name,
+    email: user.email,
+    role: user.role,
+    createdAt: user.createdAt,
+    sellerProfile: {
+      storeName: user.sellerProfile.storeName,
+      storeType: user.sellerProfile.storeType
+    }
+  }
+}

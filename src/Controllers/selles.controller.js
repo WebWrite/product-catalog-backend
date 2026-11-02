@@ -2,6 +2,7 @@ import { HTTP_STATUS } from "../constants/statusCodes.js"
 import {
   getSellerDashboard,
   getSellerInventoryHealthManager,
+  getSellerProfileManager,
   getSellerSalesByMonth
 } from "../managers/selles.manager.js"
 
@@ -29,5 +30,21 @@ export const getSellerInventoryHealthController = async (req, res) => {
   return res.status(HTTP_STATUS.OK).json({
     success: true,
     data: inventoryHealth
+  })
+}
+
+export const getSellerProfileController = async (req, res) => {
+  const profile = await getSellerProfileManager(req.user.id)
+
+  if (!profile) {
+    return res.status(HTTP_STATUS.NOT_FOUND).json({
+      success: false,
+      message: "Seller profile not found"
+    })
+  }
+
+  return res.status(HTTP_STATUS.OK).json({
+    success: true,
+    data: profile
   })
 }
