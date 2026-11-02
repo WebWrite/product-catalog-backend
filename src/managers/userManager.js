@@ -170,7 +170,39 @@ class UserManager {
       role: user.role,
       isVerified: user.isVerified,
       status: user.status,
-      cart
+      cart,
+      createdAt: user.createdAt
+    }
+  }
+
+  static async UpdateProfile(id, data) {
+    let user = await UserRepository.finUserbyId(id)
+    if (!user) {
+      throw new AppError(ERROR_MESSAGES.USER_NOT_FOUND, HTTP_STATUS.NOT_FOUND)
+    }
+    if (data.oldPassword) {
+      let verify = await bcrypt.compare(data.oldPassword, user.password)
+      if (!verify) {
+        throw new AppError(
+          ERROR_MESSAGES.INVALID_PASSWORD,
+          HTTP_STATUS.BAD_REQUEST
+        )
+      }
+      const hashedPassword = await bcrypt.hash(data.newPassword, 10)
+      data.newPassword = hashedPassword
+    }
+    let updatedUser = await UserRepository.UpdateUser(id, data)
+    let cart = await CartRepository.findUserCartCount(id)
+
+    return {
+      id: updatedUser.id,
+      name: updatedUser.name,
+      email: updatedUser.email,
+      role: updatedUser.role,
+      isVerified: updatedUser.isVerified,
+      status: updatedUser.status,
+      cart,
+      createdAt: updatedUser.createdAt
     }
   }
 }

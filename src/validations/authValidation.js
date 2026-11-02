@@ -90,3 +90,18 @@ export const UpdateUser = Joi.object({
 })
   .min(1)
   .options({ abortEarly: false, allowUnknown: false })
+
+export const UpdateProfile = Joi.object({
+  name: Joi.string().trim().min(3).max(50).optional(),
+
+  oldPassword: passwordSchema.optional(),
+
+  newPassword: passwordSchema
+    .invalid(Joi.ref("oldPassword"))
+    .messages({
+      "any.invalid": "New password must be different from your old password"
+    })
+    .optional()
+})
+  .with("oldPassword", "newPassword")
+  .with("newPassword", "oldPassword")

@@ -39,7 +39,7 @@ class AuthController {
   static async Login(req, res) {
     const result = await UserManager.Login(req.body)
     const { user, accessToken, refreshToken, cart } = result
-    const { id, role, email, name, isVerified, status } = user
+    const { id, role, email, name, isVerified, status, createdAt } = user
     AuthCookies.setAccessTokenCookie(res, accessToken, refreshToken)
     await logActivity({
       userId: id,
@@ -53,7 +53,7 @@ class AuthController {
 
     return res.status(HTTP_STATUS.OK).json({
       message: SUCCESS_MESSAGES.USER_LOGGED_IN,
-      user: { id, role, email, name, isVerified, status, cart }
+      user: { id, role, email, name, isVerified, status, cart, createdAt }
     })
   }
 
@@ -118,7 +118,7 @@ class AuthController {
   static async verifyLoginOtp(req, res) {
     const result = await UserManager.verifyLoginOtp(req.body)
     const { user, accessToken, refreshToken, cart } = result
-    const { id, role, email, name, isVerified, status } = user
+    const { id, role, email, name, isVerified, status, createdAt } = user
     AuthCookies.setAccessTokenCookie(res, accessToken, refreshToken)
     await logActivity({
       userId: id,
@@ -131,7 +131,7 @@ class AuthController {
     })
     return res.status(HTTP_STATUS.CREATED).json({
       message: SUCCESS_MESSAGES.OTP_VERIFIED,
-      user: { id, role, email, name, isVerified, status, cart }
+      user: { id, role, email, name, isVerified, status, cart, createdAt }
     })
   }
 
