@@ -6,6 +6,7 @@ import OrderController from "../Controllers/orderController.js"
 import {
   cancelOrderItemSchema,
   createCodOrderSchema,
+  sellerOrdersQuerySchema,
   updateSellerOrderItemStatusSchema
 } from "../validations/orderValidation.js"
 import { asyncHandler } from "../utils/wrapasync.js"
@@ -185,6 +186,7 @@ router.get(
   "/seller/orders",
   authentication("accessToken", process.env.ACCESS_TOKEN_SECRET_KEY),
   allowedRoles("seller"),
+  validate(sellerOrdersQuerySchema),
   asyncHandler(OrderController.getMySellerOrdersController)
 )
 
