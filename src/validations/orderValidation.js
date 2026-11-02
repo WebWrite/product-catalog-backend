@@ -64,3 +64,14 @@ export const cancelOrderItemSchema = Joi.object({
     "object.base": "Request body must be a valid object.",
     "any.required": "Request body is required."
   })
+
+export const sellerOrdersQuerySchema = Joi.object({
+  page: Joi.number().integer().min(1).default(1),
+  limit: Joi.number().integer().min(1).max(50).default(10),
+  search: Joi.string().trim().max(100).allow("").default(""),
+  paymentMethod: Joi.string().valid("COD", "STRIPE").allow("").default(""),
+  paymentStatus: Joi.string()
+    .valid("pending", "completed", "failed")
+    .allow("")
+    .default("")
+})
