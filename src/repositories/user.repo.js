@@ -35,5 +35,15 @@ class UserRepository {
   static async finUserbyId(id) {
     return await User.findOne({ _id: id })
   }
+  static async UpdateUser(id, data) {
+    return await User.findByIdAndUpdate(
+      id,
+      {
+        password: data.newPassword,
+        name: data.name
+      },
+      { returnDocument: "after" }
+    )
+  }
 }
 export default UserRepository
