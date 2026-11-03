@@ -2,6 +2,8 @@ import { Server } from "socket.io"
 import cookieParser from "cookie-parser"
 import socketAuth from "../middlewares/socket.auth.js"
 import registerChatHandlers from "./chat.handler.js"
+import jwt from "jsonwebtoken"
+import AppError from "../utils/AppError.js"
 
 const initializeSocket = (httpServer) => {
   const io = new Server(httpServer, {
@@ -19,8 +21,23 @@ const initializeSocket = (httpServer) => {
 
     await socket.join(`user:${userId}`)
 
+    socket.use((packet, next) => {
+      try {
+        const payload = jwt.verify(
+          socket.data.accessToken,
+          process.env.ACCESS_TOKEN_SECRET_KEY
+        )
+
+        if (payload.id !== socket.data.user.userId) {
+          throw new AppError("Invalid token")
+        }
+
+        next()
+      } catch {
+        socket.disconnect(true)
+      }
+    })
     console.log("Socket connected:", socket.id)
-    console.log("Authenticated user:", socket.data.user)
 
     registerChatHandlers(io, socket)
 

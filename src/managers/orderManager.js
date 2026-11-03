@@ -454,6 +454,7 @@ class OrderManager {
     const checkoutSession = await stripe.checkout.sessions.create({
       mode: "payment",
       line_items: lineItems,
+      expires_at: Math.floor(Date.now() / 1000) + 30 * 60,
       success_url: `${process.env.CLIENT_URL}/payment/success?session_id={CHECKOUT_SESSION_ID}`,
       cancel_url: `${process.env.CLIENT_URL}/payment/cancelled`
     })
@@ -744,6 +745,7 @@ class OrderManager {
     const checkoutSession = await stripe.checkout.sessions.create({
       mode: "payment",
       line_items: lineItems,
+      expires_at: Math.floor(Date.now() / 1000) + 30 * 60,
       success_url: `${process.env.CLIENT_URL}/payment/success?session_id={CHECKOUT_SESSION_ID}`,
       cancel_url: `${process.env.CLIENT_URL}/payment/cancelled`,
       metadata: {
