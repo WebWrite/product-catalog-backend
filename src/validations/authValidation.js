@@ -20,7 +20,7 @@ const otpSchema = Joi.string()
     "any.required": "OTP is required"
   })
 
-const passwordSchema = Joi.string()
+export const passwordSchema = Joi.string()
   .min(8)
   .max(128)
   .pattern(/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*\W).+$/)

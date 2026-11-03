@@ -50,6 +50,13 @@ class OrderController {
       data: { orders }
     })
   }
+  static async sellerOrderStats(req, res) {
+    const data = await OrderManager.getMyOrdersStats(req.user.id)
+    return res.status(HTTP_STATUS.OK).json({
+      success: true,
+      data
+    })
+  }
 
   static async updateSellerOrderItemStatusController(req, res) {
     const { orderId, itemId, status } = req.body
