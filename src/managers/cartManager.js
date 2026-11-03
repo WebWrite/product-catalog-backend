@@ -97,7 +97,7 @@ class CartManager {
       const existing = (cart?.items ?? []).find(
         (i) =>
           i.productId.toString() === item.productId.toString() &&
-          i.size === item.size
+          (i.size ?? null) === (item.size ?? null)
       )
 
       const room = 25 - (existing?.quantity ?? 0)

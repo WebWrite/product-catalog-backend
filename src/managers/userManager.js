@@ -8,6 +8,7 @@ import { ERROR_MESSAGES } from "../constants/errorMessages.js"
 import AppError from "../utils/AppError.js"
 import { HTTP_STATUS } from "../constants/statusCodes.js"
 import CartRepository from "../repositories/cart.repo.js"
+import CartManager from "./cartManager.js"
 class UserManager {
   static async registerUser(data, session) {
     let isUser = await UserUtil.findUserWitEmail(data.email)
@@ -68,6 +69,9 @@ class UserManager {
     const accessToken = Token.getAccessToken(user._id, user.role)
     const refreshToken = Token.getRefreshToken(user._id, user.role)
     await UserRepository.updateRefreshToken(user._id, refreshToken)
+    if (data.items?.length && user.role === "customer") {
+      await CartManager.merge(user._id, data.items)
+    }
     const cart = await CartRepository.findUserCartCount(user._id)
     return {
       user,
@@ -134,6 +138,9 @@ class UserManager {
     const accessToken = Token.getAccessToken(user._id, user.role)
     const refreshToken = Token.getRefreshToken(user._id, user.role)
     await UserRepository.updateRefreshToken(user._id, refreshToken)
+    if (data.items?.length && user.role === "customer") {
+      await CartManager.merge(user._id, data.items)
+    }
     const cart = await CartRepository.findUserCartCount(user._id)
 
     return {
