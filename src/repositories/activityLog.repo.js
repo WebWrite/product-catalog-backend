@@ -5,8 +5,7 @@ class ActivityLogRepository {
     const { page, limit, target, search } = filters
 
     const query = {
-      userId: sellerId,
-      role: "seller"
+      userId: sellerId
     }
 
     if (target) {

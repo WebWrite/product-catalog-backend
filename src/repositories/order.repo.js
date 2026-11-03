@@ -145,6 +145,70 @@ class OrderRepository {
       { session }
     )
   }
+  static async orderStats(sellerId) {
+    const sellerObjectId = new mongoose.Types.ObjectId(sellerId)
+    const stats = await Order.aggregate([
+      {
+        $match: {
+          "items.sellerId": sellerObjectId
+        }
+      },
+      {
+        $facet: {
+          totalOrders: [{ $count: "count" }],
+          processingItems: [
+            { $unwind: "$items" },
+            {
+              $match: {
+                "items.sellerId": sellerObjectId,
+                "items.status": {
+                  $in: ["pending", "confirmed"]
+                }
+              }
+            },
+            {
+              $count: "count"
+            }
+          ],
+          deliveredItems: [
+            { $unwind: "$items" },
+            {
+              $match: {
+                "items.sellerId": sellerObjectId,
+                "items.status": "delivered"
+              }
+            },
+            { $count: "count" }
+          ],
+          totalSales: [
+            { $unwind: "$items" },
+            {
+              $match: {
+                "items.sellerId": sellerObjectId,
+                "items.status": {
+                  $in: ["delivered", "pending", "confirmed"]
+                }
+              }
+            },
+            {
+              $group: {
+                _id: null,
+                total: {
+                  $sum: "$items.itemTotal"
+                }
+              }
+            }
+          ]
+        }
+      }
+    ])
+    return {
+      totalOrders: stats[0].totalOrders[0]?.count || 0,
+      processingItems: stats[0].processingItems[0]?.count || 0,
+      deliveredItems: stats[0].deliveredItems[0]?.count || 0,
+      totalSales: stats[0].totalSales[0]?.total || 0
+    }
+  }
 
   static async findOrdersBySellerId(sellerId, filters) {
     const { page, limit, search, paymentMethod, paymentStatus } = filters

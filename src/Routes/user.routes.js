@@ -1,6 +1,9 @@
 import { Router } from "express"
 import UserController from "../Controllers/UserController.js"
 import authentication from "../middlewares/authentication.middleware.js"
+import allowedRoles from "../middlewares/allowedRoles.js"
+import validate from "../middlewares/validate.js"
+import { UpdateProfile } from "../validations/authValidation.js"
 
 const router = Router()
 
@@ -22,6 +25,14 @@ router.get(
   "/me",
   authentication("accessToken", process.env.ACCESS_TOKEN_SECRET_KEY),
   UserController.getCurrentUser
+)
+
+router.patch(
+  "/",
+  authentication("accessToken", process.env.ACCESS_TOKEN_SECRET_KEY),
+  allowedRoles("customer", "admin"),
+  validate(UpdateProfile),
+  UserController.UpdateProfile
 )
 
 export default router

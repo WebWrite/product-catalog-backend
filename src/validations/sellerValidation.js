@@ -1,4 +1,5 @@
 import Joi from "joi"
+import { passwordSchema } from "./authValidation.js"
 
 const STORE_TYPES = [
   "Clothing",
@@ -11,9 +12,11 @@ const STORE_TYPES = [
 ]
 
 export const updateSellerSchema = Joi.object({
-  storeName: Joi.string().trim().min(1).max(100),
-  storeType: Joi.string().trim().max(100).allow(""),
-  status: Joi.string().valid("active", "inactive")
+  storeName: Joi.string().trim().min(1).max(100).optional(),
+  storeType: Joi.string().trim().max(100).allow("").optional(),
+  status: Joi.string().valid("active", "inactive").optional(),
+  password: passwordSchema.optional(),
+  name: Joi.string().trim().min(3).max(50).optional()
 })
   .min(1)
   .options({ abortEarly: false, allowUnknown: false })
@@ -27,19 +30,6 @@ export const updateSellerProfileValidation = Joi.object({
 })
   .or("name", "storeName", "storeType")
   .unknown(false)
-
-const passwordSchema = Joi.string()
-  .min(8)
-  .max(128)
-  .pattern(/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*\W).+$/)
-  .required()
-  .messages({
-    "string.min": "Password must be at least 8 characters long",
-    "string.max": "Password must not exceed 128 characters",
-    "string.pattern.base":
-      "Password must contain at least one uppercase letter, one lowercase letter, one number, and one special character",
-    "any.required": "Password is required"
-  })
 
 export const changeSellerPasswordValidation = Joi.object({
   newPassword: passwordSchema,

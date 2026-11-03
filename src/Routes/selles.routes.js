@@ -218,8 +218,8 @@ router.patch(
 )
 
 router.get(
-  "/seller/activity-logs",
-  ...sellerAuthentication,
+  "/user/activity-logs",
+  authentication("accessToken", process.env.ACCESS_TOKEN_SECRET_KEY),
   validate(sellerActivityLogsQuerySchema),
   asyncHandler(getSellerActivityLogsController)
 )
