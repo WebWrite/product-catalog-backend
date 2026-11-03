@@ -174,8 +174,8 @@ class OrderManager {
     }
   }
 
-  static async getMyOrders(customerId) {
-    return OrderRepository.findOrdersByCustomerId(customerId)
+  static async getMyOrders(customerId, filters) {
+    return OrderRepository.findOrdersByCustomerId(customerId, filters)
   }
 
   static async cancelMyOrderItem(customerId, orderId, itemId, requestId) {
@@ -253,8 +253,16 @@ class OrderManager {
     }
   }
 
-  static async getMySellerOrders(sellerId) {
-    return OrderRepository.findOrdersBySellerId(sellerId)
+  static async getMySellerOrders(sellerId, query) {
+    const filters = {
+      page: Number(query.page) || 1,
+      limit: Number(query.limit) || 10,
+      search: query.search?.trim() || "",
+      paymentMethod: query.paymentMethod || "",
+      paymentStatus: query.paymentStatus || ""
+    }
+
+    return OrderRepository.findOrdersBySellerId(sellerId, filters)
   }
   static async getMyOrdersStats(sellerId) {
     return OrderRepository.orderStats(sellerId)

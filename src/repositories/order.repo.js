@@ -4,7 +4,8 @@ import Order from "../models/Order.js"
 import Product from "../models/Product.js"
 import StockHistory from "../models/StockHistory.js"
 import AppError from "../utils/AppError.js"
-
+import User from "../models/User.js"
+import SellerProfile from "../models/seller.profile.model.js"
 class OrderRepository {
   static findProductsForOrder(productIds, session) {
     return Product.find({ _id: { $in: productIds } })
@@ -36,29 +37,63 @@ class OrderRepository {
     return Order.create([data], { session })
   }
 
-  static findOrdersByCustomerId(customerId) {
-    return Order.find({ customerId })
-      .sort({ createdAt: -1 })
-      .select(
-        "_id customerId items shippingAddress subtotal shippingCost total paymentMethod paymentStatus createdAt"
-      )
-      .populate({
-        path: "customerId",
-        select: "name email"
+  static async findOrdersByCustomerId(customerId, filters) {
+    const { page, limit, search, paymentMethod, paymentStatus } = filters
+
+    const query = { customerId }
+
+    if (paymentMethod) query.paymentMethod = paymentMethod
+    if (paymentStatus) query.paymentStatus = paymentStatus
+
+    if (search) {
+      const regex = new RegExp(search, "i")
+
+      const sellers = await SellerProfile.find({
+        storeName: regex
       })
-      .populate({
-        path: "items.productId",
-        select: "image.url"
-      })
-      .populate({
-        path: "items.sellerId",
-        select: "name email -_id",
-        populate: {
-          path: "sellerProfile",
-          select: "storeName -_id"
-        }
-      })
-      .lean()
+        .select("userId")
+        .lean()
+
+      const sellerIds = sellers.map((seller) => seller.userId)
+
+      query.$or = [
+        { "items.name": regex },
+        { "items.sellerId": { $in: sellerIds } }
+      ]
+    }
+
+    const [orders, total] = await Promise.all([
+      Order.find(query)
+        .sort({ createdAt: -1, _id: -1 })
+        .skip((page - 1) * limit)
+        .limit(limit)
+        .select(
+          "_id customerId items shippingAddress subtotal shippingCost total paymentMethod paymentStatus createdAt"
+        )
+        .populate({ path: "customerId", select: "name email" })
+        .populate({ path: "items.productId", select: "image.url" })
+        .populate({
+          path: "items.sellerId",
+          select: "name email -_id",
+          populate: {
+            path: "sellerProfile",
+            select: "storeName -_id"
+          }
+        })
+        .lean(),
+
+      Order.countDocuments(query)
+    ])
+
+    return {
+      orders,
+      pagination: {
+        page,
+        limit,
+        total,
+        totalPages: Math.ceil(total / limit)
+      }
+    }
   }
 
   static cancelPendingOrderItem(orderId, itemId, customerId, session) {
@@ -175,37 +210,79 @@ class OrderRepository {
     }
   }
 
-  static async findOrdersBySellerId(sellerId) {
-    return await Order.find({ "items.sellerId": sellerId })
-      .sort({ createdAt: -1 })
-      .select(
-        "_id customerId items shippingAddress subtotal shippingCost total paymentMethod paymentStatus createdAt"
+  static async findOrdersBySellerId(sellerId, filters) {
+    const { page, limit, search, paymentMethod, paymentStatus } = filters
+
+    const query = {
+      "items.sellerId": sellerId
+    }
+
+    if (paymentMethod) {
+      query.paymentMethod = paymentMethod
+    }
+
+    if (paymentStatus) {
+      query.paymentStatus = paymentStatus
+    }
+
+    if (search) {
+      const customers = await User.find({
+        $or: [
+          { name: { $regex: search, $options: "i" } },
+          { email: { $regex: search, $options: "i" } }
+        ]
+      }).select("_id")
+
+      query.customerId = {
+        $in: customers.map((user) => user._id)
+      }
+    }
+
+    const [orders, total] = await Promise.all([
+      Order.find(query)
+        .sort({ createdAt: -1, _id: -1 })
+        .skip((page - 1) * limit)
+        .limit(limit)
+        .select(
+          "_id customerId items shippingAddress subtotal shippingCost total paymentMethod paymentStatus createdAt"
+        )
+        .populate({
+          path: "customerId",
+          select: "name email _id"
+        })
+        .populate({
+          path: "items.productId",
+          select: "image.url"
+        })
+        .populate({
+          path: "items.sellerId",
+          select: "name email",
+          populate: {
+            path: "sellerProfile",
+            select: "storeName -_id"
+          }
+        })
+        .lean(),
+
+      Order.countDocuments(query)
+    ])
+
+    const sellerOrders = orders.map((order) => ({
+      ...order,
+      items: order.items.filter(
+        (item) => item.sellerId?._id?.toString() === sellerId.toString()
       )
-      .populate({
-        path: "customerId",
-        select: "name email _id"
-      })
-      .populate({
-        path: "items.productId",
-        select: "image.url"
-      })
-      .populate({
-        path: "items.sellerId",
-        select: "name email",
-        populate: {
-          path: "sellerProfile",
-          select: "storeName -_id"
-        }
-      })
-      .lean()
-      .then((orders) =>
-        orders.map((order) => ({
-          ...order,
-          items: order.items.filter(
-            (item) => item.sellerId?._id?.toString() === sellerId.toString()
-          )
-        }))
-      )
+    }))
+
+    return {
+      orders: sellerOrders,
+      pagination: {
+        page,
+        limit,
+        total,
+        totalPages: Math.ceil(total / limit)
+      }
+    }
   }
 
   static findSellerOrderItem(orderId, itemId, sellerId, session) {
