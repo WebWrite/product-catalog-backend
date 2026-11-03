@@ -35,6 +35,49 @@ class UserRepository {
   static async finUserbyId(id) {
     return await User.findOne({ _id: id })
   }
+  static async findSellerWithProfile(userId, session) {
+    const query = User.findById(userId)
+      .select("name email role createdAt")
+      .populate({
+        path: "sellerProfile",
+        select: "storeName storeType"
+      })
+
+    if (session) query.session(session)
+
+    return query.lean()
+  }
+
+  static async updateSellerById(userId, changes, session) {
+    return User.findByIdAndUpdate(
+      userId,
+      { $set: changes },
+      {
+        new: true,
+        runValidators: true,
+        session
+      }
+    )
+      .select("name email role createdAt")
+      .lean()
+  }
+
+  static async updatePasswordById(userId, hashedPassword) {
+    return User.findByIdAndUpdate(
+      userId,
+      {
+        $set: {
+          password: hashedPassword
+        }
+      },
+      {
+        new: true,
+        runValidators: true
+      }
+    )
+      .select("_id")
+      .lean()
+  }
   static async UpdateUser(id, data) {
     return await User.findByIdAndUpdate(
       id,

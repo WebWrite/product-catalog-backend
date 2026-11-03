@@ -12,6 +12,7 @@ import {
 } from "../validations/authValidation.js"
 import authLimiter from "../middlewares/rateLimiting.js"
 import { asyncHandler } from "../utils/wrapasync.js"
+import refreshAuthentication from "../middlewares/refresh.middleware.js"
 const router = Router()
 
 /**
@@ -105,7 +106,7 @@ router.post(
  */
 router.post(
   "/refresh-token",
-  authentication("refreshToken", process.env.REFRESH_TOKEN_SECRET_KEY),
+  refreshAuthentication("refreshToken", process.env.REFRESH_TOKEN_SECRET_KEY),
   asyncHandler(AuthController.refreshToken)
 )
 

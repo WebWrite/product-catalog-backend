@@ -1,5 +1,13 @@
-import { getSellerInventoryHealth } from "../repositories/product.repo.js"
+import {
+  findSellerProfileByUserId,
+  getSellerInventoryHealth
+} from "../repositories/product.repo.js"
 import OrderRepository from "../repositories/order.repo.js"
+import UserRepository from "../repositories/user.repo.js"
+import mongoose from "mongoose"
+import bcrypt from "bcryptjs"
+import SellerProfileRepository from "../repositories/sellerProfile.repo.js"
+import ActivityLogRepository from "../repositories/activityLog.repo.js"
 
 const getMonthStart = (date) =>
   new Date(Date.UTC(date.getUTCFullYear(), date.getUTCMonth(), 1))
@@ -64,3 +72,90 @@ export const getSellerSalesByMonth = async (sellerId) => {
 
 export const getSellerInventoryHealthManager = (sellerId) =>
   getSellerInventoryHealth(sellerId)
+
+export const getSellerProfileManager = async (sellerId) => {
+  const user = await UserRepository.findSellerWithProfile(sellerId)
+
+  if (!user?.sellerProfile) return null
+
+  return {
+    name: user.name,
+    email: user.email,
+    role: user.role,
+    createdAt: user.createdAt,
+    sellerProfile: {
+      storeName: user.sellerProfile.storeName,
+      storeType: user.sellerProfile.storeType
+    }
+  }
+}
+
+export const changeSellerPasswordManager = async (sellerId, newPassword) => {
+  const hashedPassword = await bcrypt.hash(newPassword, 10)
+
+  return UserRepository.updatePasswordById(sellerId, hashedPassword)
+}
+
+export const updateSellerProfileManager = async (sellerId, changes) => {
+  const session = await mongoose.startSession()
+
+  let updatedProfile = null
+
+  try {
+    await session.withTransaction(async () => {
+      const user = await UserRepository.findSellerWithProfile(sellerId, session)
+
+      if (!user?.sellerProfile) return
+
+      const userChanges = {}
+      const storeChanges = {}
+
+      if (changes.name !== undefined) {
+        userChanges.name = changes.name
+      }
+
+      if (changes.storeName !== undefined) {
+        storeChanges.storeName = changes.storeName
+      }
+
+      if (changes.storeType !== undefined) {
+        storeChanges.storeType = changes.storeType
+      }
+
+      if (Object.keys(userChanges).length) {
+        await UserRepository.updateSellerById(sellerId, userChanges, session)
+      }
+
+      if (Object.keys(storeChanges).length) {
+        await SellerProfileRepository.updateByUserId(
+          sellerId,
+          storeChanges,
+          session
+        )
+      }
+
+      const updatedUser = await UserRepository.findSellerWithProfile(
+        sellerId,
+        session
+      )
+
+      updatedProfile = {
+        name: updatedUser.name,
+        email: updatedUser.email,
+        role: updatedUser.role,
+        createdAt: updatedUser.createdAt,
+        sellerProfile: {
+          storeName: updatedUser.sellerProfile.storeName,
+          storeType: updatedUser.sellerProfile.storeType
+        }
+      }
+    })
+  } finally {
+    await session.endSession()
+  }
+
+  return updatedProfile
+}
+
+export const getSellerActivityLogsManager = (sellerId, filters) =>
+  ActivityLogRepository.findSellerActivityLogs(sellerId, filters)

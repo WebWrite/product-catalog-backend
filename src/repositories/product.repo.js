@@ -1,6 +1,7 @@
 import Product from "../models/Product.js"
 import StockHistory from "../models/StockHistory.js"
 import mongoose from "mongoose"
+import User from "../models/User.js"
 
 export const createProduct = async (data) => {
   return Product.create(data)
@@ -224,3 +225,12 @@ export const findAllProducts = async (options) => {
 export const createStockHistory = async (data) => {
   return StockHistory.create(data)
 }
+
+export const findSellerProfileByUserId = (userId) =>
+  User.findById(userId)
+    .select("name email role createdAt")
+    .populate({
+      path: "sellerProfile",
+      select: "storeName storeType userId"
+    })
+    .lean()
