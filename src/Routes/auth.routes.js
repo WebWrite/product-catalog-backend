@@ -36,6 +36,16 @@ const router = Router()
  *               password:
  *                 type: string
  *                 example: asd!9323
+ *               items:
+ *                 type: array
+ *                 description: Optional guest cart items to merge after login
+ *                 items:
+ *                   type: object
+ *                   required: [productId, quantity]
+ *                   properties:
+ *                     productId: { type: string, pattern: '^[a-fA-F0-9]{24}$' }
+ *                     quantity: { type: number, minimum: 1, maximum: 25 }
+ *                     size: { type: string, minLength: 1 }
  *     responses:
  *       200:
  *         description: Logged in successfully.
@@ -173,6 +183,16 @@ router.post(
  *                 type: string
  *                 pattern: '^[0-9]{6}$'
  *                 example: "123456"
+ *               items:
+ *                 type: array
+ *                 description: Optional guest cart items to merge after OTP login
+ *                 items:
+ *                   type: object
+ *                   required: [productId, quantity]
+ *                   properties:
+ *                     productId: { type: string, pattern: '^[a-fA-F0-9]{24}$' }
+ *                     quantity: { type: number, minimum: 1, maximum: 25 }
+ *                     size: { type: string, minLength: 1 }
  *     responses:
  *       201:
  *         description: OTP verified and user logged in successfully

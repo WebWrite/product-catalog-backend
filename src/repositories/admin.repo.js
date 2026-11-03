@@ -603,25 +603,53 @@ class AdminRepository {
   }
 
   static async editSeller(data) {
-    const { id, storeName, storeType, status } = data
+    const { id, name, storeName, storeType, status, password } = data
+
     const seller = await SellerProfile.findById(id)
 
     if (!seller) return null
 
+    const userUpdate = {}
+
+    if (name !== undefined) {
+      userUpdate.name = name
+    }
+
+    if (password) {
+      userUpdate.password = await bcrypt.hash(password, 10)
+      userUpdate.refreshToken = null
+    }
+
+    if (status !== undefined) {
+      userUpdate.status = status
+    }
+
+    await User.findOneAndUpdate(
+      { _id: seller.userId, role: "seller" },
+      { $set: userUpdate },
+      {
+        new: true,
+        runValidators: true
+      }
+    ).select("name email role status isVerified createdAt")
+
     await SellerProfile.findByIdAndUpdate(
       id,
-      { storeName, storeType },
-      { runValidators: true }
-    )
-
-    await User.findByIdAndUpdate(
-      seller.userId,
-      { status },
-      { runValidators: true }
+      {
+        $set: {
+          storeName,
+          storeType
+        }
+      },
+      {
+        new: true,
+        runValidators: true
+      }
     )
 
     return await this.findOneSeller(id)
   }
+
   static async findCustomers(options) {
     const page = Math.max(1, Number(options.page) || 1)
     const limit = Math.min(100, Math.max(1, Number(options.limit) || 10))

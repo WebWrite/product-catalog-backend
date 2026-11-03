@@ -264,6 +264,9 @@ class OrderManager {
 
     return OrderRepository.findOrdersBySellerId(sellerId, filters)
   }
+  static async getMyOrdersStats(sellerId) {
+    return OrderRepository.orderStats(sellerId)
+  }
 
   static async updateMySellerOrderItemStatus(
     sellerId,

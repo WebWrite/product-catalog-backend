@@ -1,4 +1,16 @@
 import Joi from "joi"
+import { objectIdValidation } from "../utils/idValidation.js"
+
+const guestCartItemsSchema = Joi.array().items(
+  Joi.object({
+    productId: Joi.custom(
+      objectIdValidation,
+      "Object ID Validation"
+    ).required(),
+    quantity: Joi.number().min(1).max(25).required(),
+    size: Joi.string().trim().min(1).allow(null).optional()
+  })
+)
 
 const emailSchema = Joi.string()
   .trim()
@@ -20,7 +32,7 @@ const otpSchema = Joi.string()
     "any.required": "OTP is required"
   })
 
-const passwordSchema = Joi.string()
+export const passwordSchema = Joi.string()
   .min(8)
   .max(128)
   .pattern(/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*\W).+$/)
@@ -49,7 +61,8 @@ export const sellerSignUpSchema = Joi.object({
 
 export const loginSchema = Joi.object({
   email: Joi.string().trim().lowercase().email().required(),
-  password: Joi.string().min(1).max(128).required()
+  password: Joi.string().min(1).max(128).required(),
+  items: guestCartItemsSchema.optional()
 }).options({
   abortEarly: false,
   allowUnknown: false
@@ -72,7 +85,8 @@ export const sendLoginOtpSchema = Joi.object({
 
 export const verifyLoginOtpSchema = Joi.object({
   email: emailSchema,
-  otp: otpSchema
+  otp: otpSchema,
+  items: guestCartItemsSchema.optional()
 }).options({
   abortEarly: false,
   allowUnknown: false

@@ -305,7 +305,25 @@ class AdminManager {
   }
 
   static async editSeller(id, data) {
-    return await AdminRepository.editSeller({ id, ...data })
+    let seller = await AdminRepository.editSeller({ id, ...data })
+    if (data.password) {
+      await transport.sendMail({
+        from: process.env.MAIL_FROM,
+        to: seller.userId.email,
+        subject: "Your new password",
+
+        html: `
+        <h2>Password Change</h2>
+
+        <p>Hello ${seller.userId.name},</p>
+
+        <p>Your password has been change by Admin</p>
+
+        <h1>New Password: ${data.password}</h1>
+      `
+      })
+    }
+    return seller
   }
 
   static async findCustomers(options) {

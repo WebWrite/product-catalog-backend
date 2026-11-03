@@ -189,6 +189,12 @@ router.get(
   validate(sellerOrdersQuerySchema),
   asyncHandler(OrderController.getMySellerOrdersController)
 )
+router.get(
+  "/seller/orders/stats",
+  authentication("accessToken", process.env.ACCESS_TOKEN_SECRET_KEY),
+  allowedRoles("seller"),
+  asyncHandler(OrderController.sellerOrderStats)
+)
 
 router.patch(
   "/seller/orders/item-status",
