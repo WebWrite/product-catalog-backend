@@ -95,30 +95,51 @@ class OrderManager {
           }
         })
 
-        const historyEntries = []
+        // Bulk stock decrement
+        const operations = items.map((item) => ({
+          updateOne: {
+            filter: {
+              _id: item.productId,
+              status: "active",
+              stock: { $gte: item.quantity }
+            },
+            update: {
+              $inc: { stock: -item.quantity }
+            }
+          }
+        }))
 
-        for (const item of items) {
-          const product = await OrderRepository.decreaseStockForOrder(
-            item.productId,
-            item.quantity,
-            session
+        const stockResult = await OrderRepository.decreaseStockForOrder(
+          operations,
+          session
+        )
+
+        if (stockResult.matchedCount !== operations.length) {
+          throw new AppError(
+            "Insufficient stock or unavailable product.",
+            HTTP_STATUS.CONFLICT
+          )
+        }
+
+        // Prepare stock history
+        const updatedProducts = await OrderRepository.findProductsForOrder(
+          productIds,
+          session
+        )
+
+        const historyEntries = items.map((item) => {
+          const product = updatedProducts.find(
+            (product) => product._id.toString() === item.productId.toString()
           )
 
-          if (!product) {
-            throw new AppError(
-              `Insufficient stock or unavailable product: ${item.name}.`,
-              HTTP_STATUS.CONFLICT
-            )
-          }
-
-          historyEntries.push({
+          return {
             productId: product._id,
-            sellerId: product.sellerId,
+            sellerId: item.sellerId,
             previousStock: product.stock + item.quantity,
             newStock: product.stock,
             reason: "order"
-          })
-        }
+          }
+        })
 
         const subtotal = items.reduce((sum, item) => sum + item.itemTotal, 0)
 
@@ -554,6 +575,7 @@ class OrderManager {
             "failed",
             dbSession
           )
+
           await ActivityLog.create(
             [
               {
@@ -591,30 +613,51 @@ class OrderManager {
           )
         }
 
-        const historyEntries = []
+        // Bulk stock decrement
+        const operations = order.items.map((item) => ({
+          updateOne: {
+            filter: {
+              _id: item.productId,
+              status: "active",
+              stock: { $gte: item.quantity }
+            },
+            update: {
+              $inc: { stock: -item.quantity }
+            }
+          }
+        }))
 
-        for (const item of order.items) {
-          const product = await OrderRepository.decreaseStockForOrder(
-            item.productId,
-            item.quantity,
-            dbSession
+        const stockResult = await OrderRepository.decreaseStockForOrder(
+          operations,
+          dbSession
+        )
+
+        if (stockResult.matchedCount !== operations.length) {
+          throw new AppError(
+            "Insufficient stock or unavailable product.",
+            HTTP_STATUS.CONFLICT
+          )
+        }
+
+        // Prepare stock history
+        const updatedProducts = await OrderRepository.findProductsForOrder(
+          order.items.map((item) => item.productId),
+          dbSession
+        )
+
+        const historyEntries = order.items.map((item) => {
+          const product = updatedProducts.find(
+            (product) => product._id.toString() === item.productId.toString()
           )
 
-          if (!product) {
-            throw new AppError(
-              `Insufficient stock for ${item.name}.`,
-              HTTP_STATUS.CONFLICT
-            )
-          }
-
-          historyEntries.push({
+          return {
             productId: product._id,
             sellerId: item.sellerId,
             previousStock: product.stock + item.quantity,
             newStock: product.stock,
             reason: "order"
-          })
-        }
+          }
+        })
 
         await OrderRepository.createOrderStockHistory(historyEntries, dbSession)
 
@@ -626,13 +669,12 @@ class OrderManager {
 
         await PaymentRepository.updatePaymentBySessionId(
           checkoutSession.id,
-          {
-            status: "completed"
-          },
+          { status: "completed" },
           dbSession
         )
 
         await CartRepository.clearCartForOrder(order.customerId, dbSession)
+
         await ActivityLog.create(
           [
             {

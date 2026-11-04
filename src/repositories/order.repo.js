@@ -13,20 +13,8 @@ class OrderRepository {
       .session(session)
       .lean()
   }
-  static decreaseStockForOrder(productId, quantity, session) {
-    return Product.findOneAndUpdate(
-      {
-        _id: productId,
-        status: "active",
-        stock: { $gte: quantity }
-      },
-      { $inc: { stock: -quantity } },
-      {
-        new: true,
-        session,
-        runValidators: true
-      }
-    ).lean()
+  static decreaseStockForOrder(operations, session) {
+    return Product.bulkWrite(operations, { session })
   }
 
   static createOrderStockHistory(entries, session) {
@@ -331,18 +319,17 @@ class OrderRepository {
       updates["items.$[].status"] = "confirmed"
     }
 
-    const update = { $set: updates }
-
-    if (paymentStatus === "completed") {
-      update.$unset = { paymentExpiresAt: 1 }
-    }
-
     return Order.findOneAndUpdate(
       {
         _id: orderId,
         paymentStatus: "pending"
       },
-      update,
+      {
+        $set: updates,
+        ...(paymentStatus === "completed" && {
+          $unset: { paymentExpiresAt: 1 }
+        })
+      },
       {
         new: true,
         runValidators: true,
