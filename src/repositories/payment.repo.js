@@ -17,8 +17,13 @@ class PaymentRepository {
 
   static updatePaymentBySessionId(sessionId, updates, session) {
     return Payment.findOneAndUpdate(
-      { sessionId, status: "pending" },
-      { $set: updates },
+      { sessionId },
+      {
+        $set: updates,
+        ...(updates.status === "completed" && {
+          $unset: { paymentExpiresAt: 1 }
+        })
+      },
       {
         new: true,
         runValidators: true,

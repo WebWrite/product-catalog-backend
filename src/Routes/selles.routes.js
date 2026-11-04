@@ -17,6 +17,7 @@ import {
   updateSellerProfileValidation
 } from "../validations/sellerValidation.js"
 import validate from "../middlewares/validate.js"
+import authLimiter from "../middlewares/rateLimiting.js"
 
 const router = Router()
 
@@ -182,29 +183,34 @@ const sellerAuthentication = [
  */
 router.get(
   "/seller/dashboard",
+  authLimiter(1, 30),
   ...sellerAuthentication,
   asyncHandler(getSellerDashboardController)
 )
 
 router.get(
   "/seller/sales/monthly",
+  authLimiter(1, 30),
   ...sellerAuthentication,
   asyncHandler(getSellerSalesByMonthController)
 )
 
 router.get(
   "/seller/inventory-health",
+  authLimiter(1, 30),
   ...sellerAuthentication,
   asyncHandler(getSellerInventoryHealthController)
 )
 router.get(
   "/seller/profile",
+  authLimiter(1, 30),
   ...sellerAuthentication,
   asyncHandler(getSellerProfileController)
 )
 
 router.patch(
   "/seller/profile",
+  authLimiter(1, 10),
   ...sellerAuthentication,
   validate(updateSellerProfileValidation),
   asyncHandler(updateSellerProfileController)
@@ -212,6 +218,7 @@ router.patch(
 
 router.patch(
   "/seller/profile/password",
+  authLimiter(1, 10),
   ...sellerAuthentication,
   validate(changeSellerPasswordValidation),
   asyncHandler(changeSellerPasswordController)
@@ -219,6 +226,7 @@ router.patch(
 
 router.get(
   "/user/activity-logs",
+  authLimiter(1, 30),
   authentication("accessToken", process.env.ACCESS_TOKEN_SECRET_KEY),
   validate(sellerActivityLogsQuerySchema),
   asyncHandler(getSellerActivityLogsController)
