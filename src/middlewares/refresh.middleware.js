@@ -7,9 +7,8 @@ import User from "../models/User.js"
 const refreshAuthentication = (requestToken, secretKey) => {
   return async (req, res, next) => {
     const token = req.cookies[requestToken]
-    const accessToken = req.cookies.accessToken
 
-    if (!token || !accessToken) {
+    if (!token) {
       return next(
         new AppError(ERROR_MESSAGES.TOKEN_INVALID, HTTP_STATUS.UNAUTHORIZED)
       )
@@ -19,16 +18,6 @@ const refreshAuthentication = (requestToken, secretKey) => {
 
     try {
       payload = jwt.verify(token, secretKey)
-
-      const accessPayload = jwt.verify(
-        accessToken,
-        process.env.ACCESS_TOKEN_SECRET_KEY,
-        { ignoreExpiration: true }
-      )
-
-      if (payload.id !== accessPayload.id) {
-        throw new Error("Token user mismatch")
-      }
     } catch {
       return next(
         new AppError(ERROR_MESSAGES.TOKEN_INVALID, HTTP_STATUS.UNAUTHORIZED)
@@ -51,5 +40,4 @@ const refreshAuthentication = (requestToken, secretKey) => {
     }
   }
 }
-
 export default refreshAuthentication
