@@ -110,7 +110,7 @@ const router = Router()
  *               itemId: { type: string, pattern: '^[a-fA-F0-9]{24}$' }
  *               status:
  *                 type: string
- *                 enum: [pending, confirmed, processing, shipped, delivered, cancelled]
+ *                 enum: [pending, confirmed, delivered, cancelled]
  *     responses:
  *       200: { description: Payment retry started }
  *
@@ -139,7 +139,7 @@ const router = Router()
  *               itemId: { type: string, pattern: '^[a-fA-F0-9]{24}$' }
  *               status:
  *                 type: string
- *                 enum: [pending, confirmed, processing, shipped, delivered, cancelled]
+ *                 enum: [pending, confirmed,delivered, cancelled]
  *     responses:
  *       200: { description: Order item status updated }
  */

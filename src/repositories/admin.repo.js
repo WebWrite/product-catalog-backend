@@ -459,7 +459,7 @@ class AdminRepository {
     if (status === "active") {
       filter.status = "active"
     } else if (status === "inactive") {
-      filter.status = { $in: ["blocked", "suspended"] }
+      filter.status = "inactive"
     }
 
     if (search?.trim()) {
@@ -622,6 +622,9 @@ class AdminRepository {
 
     if (status !== undefined) {
       userUpdate.status = status
+      if (status === "inactive") {
+        userUpdate.refreshToken = null
+      }
     }
 
     await User.findOneAndUpdate(
@@ -725,6 +728,9 @@ class AdminRepository {
 
     if (update.password) {
       update.password = await bcrypt.hash(update.password, 10)
+      update.refreshToken = null
+    }
+    if (update.status === "inactive") {
       update.refreshToken = null
     }
 

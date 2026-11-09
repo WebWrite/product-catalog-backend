@@ -117,7 +117,7 @@ class UserManager {
     if (!user.isVerified) {
       throw new AppError(ERROR_MESSAGES.VERIFY_EMAIL, HTTP_STATUS.BAD_REQUEST)
     }
-    OtpUtils.sendOtp(user.name, user.email, "signin")
+    await OtpUtils.sendOtp(user.name, user.email, "signin")
     return {
       id: user.id,
       name: user.name,

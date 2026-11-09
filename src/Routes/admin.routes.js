@@ -11,6 +11,7 @@ import { updateSellerOrderItemStatusSchema } from "../validations/orderValidatio
 import { UpdateUser } from "../validations/authValidation.js"
 import authentication from "../middlewares/authentication.middleware.js"
 import authorization from "../middlewares/authorization.middleware.js"
+import { sanitizeRichText } from "../middlewares/sanitizeRichText.middleware.js"
 
 const router = Router()
 const adminAuthentication = [
@@ -311,7 +312,7 @@ const adminAuthentication = [
  *               itemId: { type: string, pattern: '^[a-fA-F0-9]{24}$' }
  *               status:
  *                 type: string
- *                 enum: [pending, confirmed, processing, shipped, delivered, cancelled]
+ *                 enum: [pending, confirmed, delivered, cancelled]
  *     responses:
  *       200: { description: Order item status updated }
  *
@@ -428,6 +429,7 @@ router.patch(
   upload.single("image"),
   validateImageSignature(false),
   validate(updateProductSchema),
+  sanitizeRichText("description"),
   asyncHandler(AdminController.updateProductByAdmin)
 )
 router.patch(

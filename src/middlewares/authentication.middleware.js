@@ -35,7 +35,16 @@ const authentication = (requestToken, secretKey) => {
     }
 
     try {
-      const user = await User.findById(payload.id).select("refreshToken")
+      const user = await User.findById(payload.id)
+      if (user.status === "inactive") {
+        console.log("user is inactive")
+        return next(
+          new AppError(
+            ERROR_MESSAGES.ACCOUNT_INACTIVE,
+            HTTP_STATUS.UNAUTHORIZED
+          )
+        )
+      }
 
       if (!user || user.refreshToken !== refreshToken) {
         return next(
