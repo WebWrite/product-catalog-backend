@@ -7,6 +7,8 @@ import notFound from "./middlewares/notFound.js"
 import swaggerUi from "swagger-ui-express"
 import swaggerJsdoc from "swagger-jsdoc"
 import swaggerOptions from "./config/swagger.js"
+import redis from "./config/redis.config.js"
+import mongoose from "mongoose"
 
 import authRoutes from "./Routes/auth.routes.js"
 import userRoutes from "./Routes/user.routes.js"
@@ -29,6 +31,32 @@ app.use(
 )
 
 app.use(cookieParser())
+
+app.get("/health/live", (req, res) => {
+  res.status(200).json({
+    status: "ok",
+    timestamp: new Date().toLocaleString("en-GB", {
+      timeZone: "Asia/Karachi"
+    }),
+    uptime: Math.floor(process.uptime())
+  })
+})
+
+app.get("/health/ready", (req, res) => {
+  const mongoReady = mongoose.connection.readyState === 1
+  const redisReady = redis.isReady
+
+  const isReady = mongoReady && redisReady
+
+  res.status(isReady ? 200 : 503).json({
+    status: isReady ? "ok" : "error",
+    checks: {
+      mongodb: mongoReady ? "connected" : "disconnected",
+      redis: redisReady ? "connected" : "disconnected"
+    }
+  })
+})
+
 app.use(requestLogger)
 
 app.use(`${baseURL}`, stripeWebHookRoutes)

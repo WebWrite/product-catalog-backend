@@ -243,7 +243,9 @@ class OrderManager {
           )
         }
 
-        await OrderRepository.restoreOrderItemStock(item, session)
+        if (order.paymentMethod === "COD") {
+          await OrderRepository.restoreOrderItemStock(item, session)
+        }
       })
 
       const cancelledItem = updatedOrder.items.find(
@@ -361,7 +363,7 @@ class OrderManager {
           )
         }
 
-        if (status === "cancelled") {
+        if (status === "cancelled" && order.paymentMethod === "COD") {
           await OrderRepository.restoreOrderItemStock(item, session)
         }
       })

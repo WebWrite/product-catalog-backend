@@ -1,12 +1,15 @@
 import jwt from "jsonwebtoken"
 import User from "../models/User.js"
+import { ERROR_MESSAGES } from "../constants/errorMessages.js"
+import AppError from "../utils/AppError.js"
+import { HTTP_STATUS } from "../constants/statusCodes.js"
 
 const socketAuth = async (socket, next) => {
   try {
     const { accessToken, refreshToken } = socket.request.cookies || {}
 
     if (!accessToken || !refreshToken) {
-      return next(new Error("Authentication required"))
+      throw new AppError(ERROR_MESSAGES.UNAUTHORIZED, HTTP_STATUS.UNAUTHORIZED)
     }
 
     const decoded = jwt.verify(accessToken, process.env.ACCESS_TOKEN_SECRET_KEY)
@@ -17,13 +20,20 @@ const socketAuth = async (socket, next) => {
     )
 
     if (!decoded.id || !decoded.role || decoded.id !== refreshDecoded.id) {
-      return next(new Error("Invalid tokens"))
+      throw new AppError(ERROR_MESSAGES.TOKEN_INVALID, HTTP_STATUS.UNAUTHORIZED)
     }
 
     const user = await User.findById(decoded.id).select("refreshToken")
 
     if (!user || user.refreshToken !== refreshToken) {
-      return next(new Error("Invalid tokens"))
+      throw new AppError(ERROR_MESSAGES.TOKEN_INVALID, HTTP_STATUS.UNAUTHORIZED)
+    }
+
+    if (user.status === "inactive") {
+      throw new AppError(
+        ERROR_MESSAGES.ACCOUNT_INACTIVE,
+        HTTP_STATUS.UNAUTHORIZED
+      )
     }
 
     socket.data.user = {
@@ -34,7 +44,10 @@ const socketAuth = async (socket, next) => {
 
     next()
   } catch {
-    next(new Error("Invalid or expired token"))
+    throw new AppError(
+      ERROR_MESSAGES.ACCOUNT_INACTIVE,
+      HTTP_STATUS.UNAUTHORIZED
+    )
   }
 }
 
