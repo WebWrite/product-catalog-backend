@@ -243,7 +243,9 @@ class OrderManager {
           )
         }
 
-        await OrderRepository.restoreOrderItemStock(item, session)
+        if (order.paymentMethod === "COD") {
+          await OrderRepository.restoreOrderItemStock(item, session)
+        }
       })
 
       const cancelledItem = updatedOrder.items.find(
@@ -361,7 +363,7 @@ class OrderManager {
           )
         }
 
-        if (status === "cancelled") {
+        if (status === "cancelled" && order.paymentMethod === "COD") {
           await OrderRepository.restoreOrderItemStock(item, session)
         }
       })
@@ -440,7 +442,7 @@ class OrderManager {
 
     const total = subtotal + SHIPPING_COST
 
-    const paymentExpiresAt = new Date(Date.now() + 15 * 60 * 1000)
+    const paymentExpiresAt = new Date(Date.now() + 30 * 60 * 1000)
 
     const [order] = await OrderRepository.createOrder({
       customerId,
@@ -489,7 +491,8 @@ class OrderManager {
       sessionId: checkoutSession.id,
       amount: total,
       currency: "PKR",
-      status: "pending"
+      status: "pending",
+      paymentExpiresAt
     })
 
     await ActivityLog.create({

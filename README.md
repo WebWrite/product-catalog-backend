@@ -144,6 +144,3 @@ Format the project:
 npm run format
 ```
 
-## License
-
-This project is released under the ISC license.

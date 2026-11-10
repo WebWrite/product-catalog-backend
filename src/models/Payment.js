@@ -36,7 +36,10 @@ const paymentSchema = new mongoose.Schema(
       minlength: 3,
       maxlength: 3
     },
-
+    paymentExpiresAt: {
+      type: Date,
+      default: null
+    },
     status: {
       type: String,
       enum: ["pending", "completed", "failed"],
@@ -50,5 +53,5 @@ const paymentSchema = new mongoose.Schema(
 )
 
 const Payment = mongoose.model("Payment", paymentSchema)
-
+paymentSchema.index({ paymentExpiresAt: 1 }, { expireAfterSeconds: 0 })
 export default Payment

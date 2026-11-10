@@ -52,7 +52,12 @@ const router = Router()
  *       200:
  *         description: Logged in successfully.
  */
-router.post("/login", validate(loginSchema), asyncHandler(AuthController.Login))
+router.post(
+  "/login",
+  authLimiter(1, 5),
+  validate(loginSchema),
+  asyncHandler(AuthController.Login)
+)
 
 /**
  * @swagger
@@ -107,6 +112,7 @@ router.post(
  */
 router.post(
   "/refresh-token",
+  authLimiter(1, 5),
   refreshAuthentication("refreshToken", process.env.REFRESH_TOKEN_SECRET_KEY),
   asyncHandler(AuthController.refreshToken)
 )
@@ -157,6 +163,7 @@ router.post(
  */
 router.post(
   "/verify-email-otp",
+  authLimiter(1, 3),
   validate(verifyEmailOtpSchema),
   asyncHandler(AuthController.verifyOtp)
 )
@@ -235,6 +242,7 @@ router.post(
 
 router.post(
   "/verify-login-otp",
+  authLimiter(1, 3),
   validate(verifyLoginOtpSchema),
   asyncHandler(AuthController.verifyLoginOtp)
 )
@@ -282,6 +290,7 @@ router.post(
  */
 router.post(
   "/send-login-otp",
+  authLimiter(1, 3),
   validate(sendLoginOtpSchema),
   asyncHandler(AuthController.sendLoginOtp)
 )
@@ -330,6 +339,7 @@ router.post(
 
 router.post(
   "/resend-email-otp",
+  authLimiter(1, 3),
   validate(sendLoginOtpSchema),
   asyncHandler(AuthController.resendEmailOtp)
 )
@@ -369,7 +379,7 @@ router.post(
   "/register-customer",
   sanitizeFields(["name"]),
   validate(signupSchema),
-  authLimiter,
+  authLimiter(1, 3),
   asyncHandler(AuthController.registerUser)
 )
 /**
@@ -417,7 +427,11 @@ router.post(
 
 router.post(
   "/register-seller",
+<<<<<<< HEAD
   sanitizeFields(["name", "storeName", "storeType"]),
+=======
+  authLimiter(1, 3),
+>>>>>>> 80582c49b0c7e62108cf4088cdb1216a7bb464c9
   validate(sellerSignUpSchema),
   authLimiter,
   asyncHandler(AuthController.registerSeller)

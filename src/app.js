@@ -7,6 +7,9 @@ import notFound from "./middlewares/notFound.js"
 import swaggerUi from "swagger-ui-express"
 import swaggerJsdoc from "swagger-jsdoc"
 import swaggerOptions from "./config/swagger.js"
+import redis from "./config/redis.config.js"
+import mongoose from "mongoose"
+import helmet from "helmet"
 
 import authRoutes from "./Routes/auth.routes.js"
 import userRoutes from "./Routes/user.routes.js"
@@ -22,6 +25,13 @@ import ExpressMongoSanitize from "@exortek/express-mongo-sanitize"
 export const app = express()
 const baseURL = "/api/v1"
 app.set("trust proxy", 1)
+
+app.use(
+  helmet({
+    contentSecurityPolicy: false
+  })
+)
+
 app.use(
   cors({
     origin: process.env.CLIENT_URL || "http://localhost:3000",
@@ -30,6 +40,32 @@ app.use(
 )
 
 app.use(cookieParser())
+
+app.get("/health/live", (req, res) => {
+  res.status(200).json({
+    status: "ok",
+    timestamp: new Date().toLocaleString("en-GB", {
+      timeZone: "Asia/Karachi"
+    }),
+    uptime: Math.floor(process.uptime())
+  })
+})
+
+app.get("/health/ready", (req, res) => {
+  const mongoReady = mongoose.connection.readyState === 1
+  const redisReady = redis.isReady
+
+  const isReady = mongoReady && redisReady
+
+  res.status(isReady ? 200 : 503).json({
+    status: isReady ? "ok" : "error",
+    checks: {
+      mongodb: mongoReady ? "connected" : "disconnected",
+      redis: redisReady ? "connected" : "disconnected"
+    }
+  })
+})
+
 app.use(requestLogger)
 
 app.use(`${baseURL}`, stripeWebHookRoutes)
@@ -39,8 +75,29 @@ app.use(express.urlencoded({ extended: true }))
 app.use(ExpressMongoSanitize())
 
 const swaggerDocs = swaggerJsdoc(swaggerOptions)
+<<<<<<< HEAD
 app.use("/api-docs", swaggerUi.serve, swaggerUi.setup(swaggerDocs))
 
+=======
+app.use(
+  "/api-docs",
+  helmet.contentSecurityPolicy({
+    directives: {
+      defaultSrc: ["'self'"],
+      scriptSrc: ["'self'"],
+      styleSrc: ["'self'", "'unsafe-inline'"],
+      imgSrc: ["'self'", "data:"],
+      connectSrc: ["'self'"],
+      objectSrc: ["'none'"],
+      baseUri: ["'self'"],
+      frameAncestors: ["'none'"]
+    }
+  }),
+  swaggerUi.serve,
+  swaggerUi.setup(swaggerDocs)
+)
+app.use(express.urlencoded({ extended: true }))
+>>>>>>> 80582c49b0c7e62108cf4088cdb1216a7bb464c9
 app.use(`${baseURL}/auth`, authRoutes)
 app.use(`${baseURL}/user`, userRoutes)
 app.use(`${baseURL}/chat`, chatRoutes)
