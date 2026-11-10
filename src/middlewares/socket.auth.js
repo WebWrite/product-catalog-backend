@@ -23,8 +23,7 @@ const socketAuth = async (socket, next) => {
       throw new AppError(ERROR_MESSAGES.TOKEN_INVALID, HTTP_STATUS.UNAUTHORIZED)
     }
 
-    const user = await User.findById(decoded.id).select("refreshToken")
-
+    const user = await User.findById(decoded.id)
     if (!user || user.refreshToken !== refreshToken) {
       throw new AppError(ERROR_MESSAGES.TOKEN_INVALID, HTTP_STATUS.UNAUTHORIZED)
     }
