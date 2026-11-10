@@ -9,6 +9,7 @@ import swaggerJsdoc from "swagger-jsdoc"
 import swaggerOptions from "./config/swagger.js"
 import redis from "./config/redis.config.js"
 import mongoose from "mongoose"
+import helmet from "helmet"
 
 import authRoutes from "./Routes/auth.routes.js"
 import userRoutes from "./Routes/user.routes.js"
@@ -23,6 +24,13 @@ import sellerDashboardRoutes from "./Routes/selles.routes.js"
 export const app = express()
 const baseURL = "/api/v1"
 app.set("trust proxy", 1)
+
+app.use(
+  helmet({
+    contentSecurityPolicy: false
+  })
+)
+
 app.use(
   cors({
     origin: process.env.CLIENT_URL || "http://localhost:3000",
@@ -64,8 +72,23 @@ app.use(`${baseURL}`, stripeWebHookRoutes)
 app.use(express.json())
 
 const swaggerDocs = swaggerJsdoc(swaggerOptions)
-app.use("/api-docs", swaggerUi.serve, swaggerUi.setup(swaggerDocs))
-
+app.use(
+  "/api-docs",
+  helmet.contentSecurityPolicy({
+    directives: {
+      defaultSrc: ["'self'"],
+      scriptSrc: ["'self'"],
+      styleSrc: ["'self'", "'unsafe-inline'"],
+      imgSrc: ["'self'", "data:"],
+      connectSrc: ["'self'"],
+      objectSrc: ["'none'"],
+      baseUri: ["'self'"],
+      frameAncestors: ["'none'"]
+    }
+  }),
+  swaggerUi.serve,
+  swaggerUi.setup(swaggerDocs)
+)
 app.use(express.urlencoded({ extended: true }))
 app.use(`${baseURL}/auth`, authRoutes)
 app.use(`${baseURL}/user`, userRoutes)
