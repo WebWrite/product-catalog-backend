@@ -5,9 +5,12 @@ const authLimiter = (minutes, limit) => {
   return rateLimit({
     windowMs: minutes * 60 * 1000,
     limit,
-    message: ERROR_MESSAGES.AUTH_LIMIT,
-    standardHeaders: true,
-    legacyHeaders: false
+    handler: (_request, response) => {
+      response.status(429).json({
+        success: false,
+        message: ERROR_MESSAGES.AUTH_LIMIT
+      })
+    }
   })
 }
 
