@@ -427,11 +427,8 @@ router.post(
 
 router.post(
   "/register-seller",
-<<<<<<< HEAD
   sanitizeFields(["name", "storeName", "storeType"]),
-=======
   authLimiter(1, 3),
->>>>>>> 80582c49b0c7e62108cf4088cdb1216a7bb464c9
   validate(sellerSignUpSchema),
   authLimiter,
   asyncHandler(AuthController.registerSeller)

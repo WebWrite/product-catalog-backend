@@ -11,12 +11,9 @@ import { updateSellerOrderItemStatusSchema } from "../validations/orderValidatio
 import { UpdateUser } from "../validations/authValidation.js"
 import authentication from "../middlewares/authentication.middleware.js"
 import authorization from "../middlewares/authorization.middleware.js"
-<<<<<<< HEAD
 import { sanitizeRichText } from "../middlewares/sanitizeRichText.middleware.js"
 import { sanitizeFields } from "../middlewares/sanitizeFields.middleware.js"
-=======
 import authLimiter from "../middlewares/rateLimiting.js"
->>>>>>> 80582c49b0c7e62108cf4088cdb1216a7bb464c9
 
 const router = Router()
 const adminAuthentication = [
