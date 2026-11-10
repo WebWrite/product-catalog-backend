@@ -43,11 +43,8 @@ const socketAuth = async (socket, next) => {
     socket.data.accessToken = accessToken
 
     next()
-  } catch {
-    throw new AppError(
-      ERROR_MESSAGES.ACCOUNT_INACTIVE,
-      HTTP_STATUS.UNAUTHORIZED
-    )
+  } catch (e) {
+    next(e)
   }
 }
 
