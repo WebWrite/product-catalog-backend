@@ -17,6 +17,7 @@ import adminRoutes from "./Routes/admin.routes.js"
 import stripeWebHookRoutes from "./Routes/stripewebhook.routes.js"
 import chatRoutes from "./Routes/chat.routes.js"
 import sellerDashboardRoutes from "./Routes/selles.routes.js"
+import ExpressMongoSanitize from "@exortek/express-mongo-sanitize"
 
 export const app = express()
 const baseURL = "/api/v1"
@@ -34,11 +35,12 @@ app.use(requestLogger)
 app.use(`${baseURL}`, stripeWebHookRoutes)
 
 app.use(express.json())
+app.use(express.urlencoded({ extended: true }))
+app.use(ExpressMongoSanitize())
 
 const swaggerDocs = swaggerJsdoc(swaggerOptions)
 app.use("/api-docs", swaggerUi.serve, swaggerUi.setup(swaggerDocs))
 
-app.use(express.urlencoded({ extended: true }))
 app.use(`${baseURL}/auth`, authRoutes)
 app.use(`${baseURL}/user`, userRoutes)
 app.use(`${baseURL}/chat`, chatRoutes)

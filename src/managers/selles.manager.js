@@ -1,7 +1,4 @@
-import {
-  findSellerProfileByUserId,
-  getSellerInventoryHealth
-} from "../repositories/product.repo.js"
+import { getSellerInventoryHealth } from "../repositories/product.repo.js"
 import OrderRepository from "../repositories/order.repo.js"
 import UserRepository from "../repositories/user.repo.js"
 import mongoose from "mongoose"

@@ -12,6 +12,7 @@ import { UpdateUser } from "../validations/authValidation.js"
 import authentication from "../middlewares/authentication.middleware.js"
 import authorization from "../middlewares/authorization.middleware.js"
 import { sanitizeRichText } from "../middlewares/sanitizeRichText.middleware.js"
+import { sanitizeFields } from "../middlewares/sanitizeFields.middleware.js"
 
 const router = Router()
 const adminAuthentication = [
@@ -410,6 +411,7 @@ router.patch(
   "/customers/:id",
   ...adminAuthentication,
   validateObjectId,
+  sanitizeFields(["name"]),
   validate(UpdateUser),
   asyncHandler(AdminController.updateCustomer)
 )
@@ -418,6 +420,7 @@ router.patch(
   "/sellers/:id",
   ...adminAuthentication,
   validateObjectId,
+  sanitizeFields(["name", "storeName", "storeType"]),
   validate(updateSellerSchema),
   asyncHandler(AdminController.editSeller)
 )
@@ -428,6 +431,7 @@ router.patch(
   validateObjectId,
   upload.single("image"),
   validateImageSignature(false),
+  sanitizeFields(["category", "name"]),
   validate(updateProductSchema),
   sanitizeRichText("description"),
   asyncHandler(AdminController.updateProductByAdmin)

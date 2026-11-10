@@ -2,6 +2,7 @@ import { Router } from "express"
 import allowedRoles from "../middlewares/allowedRoles.js"
 import authentication from "../middlewares/authentication.middleware.js"
 import validate from "../middlewares/validate.js"
+import { sanitizeFields } from "../middlewares/sanitizeFields.middleware.js"
 import OrderController from "../Controllers/orderController.js"
 import {
   cancelOrderItemSchema,
@@ -147,6 +148,11 @@ router.post(
   "/orders/cod",
   authentication("accessToken", process.env.ACCESS_TOKEN_SECRET_KEY),
   allowedRoles("customer"),
+  sanitizeFields([
+    "shippingAddress.fullName",
+    "shippingAddress.address",
+    "shippingAddress.city"
+  ]),
   validate(createCodOrderSchema),
   asyncHandler(OrderController.createOrder)
 )
@@ -170,6 +176,11 @@ router.post(
   "/orders/stripe",
   authentication("accessToken", process.env.ACCESS_TOKEN_SECRET_KEY),
   allowedRoles("customer"),
+  sanitizeFields([
+    "shippingAddress.fullName",
+    "shippingAddress.address",
+    "shippingAddress.city"
+  ]),
   validate(createCodOrderSchema),
   asyncHandler(OrderController.placeOrderStripe)
 )
