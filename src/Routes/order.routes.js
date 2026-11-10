@@ -10,6 +10,7 @@ import {
   updateSellerOrderItemStatusSchema
 } from "../validations/orderValidation.js"
 import { asyncHandler } from "../utils/wrapasync.js"
+import authLimiter from "../middlewares/rateLimiting.js"
 
 const router = Router()
 
@@ -145,6 +146,7 @@ const router = Router()
  */
 router.post(
   "/orders/cod",
+  authLimiter(1, 10),
   authentication("accessToken", process.env.ACCESS_TOKEN_SECRET_KEY),
   allowedRoles("customer"),
   validate(createCodOrderSchema),
@@ -153,6 +155,7 @@ router.post(
 
 router.get(
   "/orders/my-orders",
+  authLimiter(1, 30),
   authentication("accessToken", process.env.ACCESS_TOKEN_SECRET_KEY),
   allowedRoles("customer"),
   asyncHandler(OrderController.getMyOrdersController)
@@ -160,6 +163,7 @@ router.get(
 
 router.patch(
   "/orders/cancel-item",
+  authLimiter(1, 10),
   authentication("accessToken", process.env.ACCESS_TOKEN_SECRET_KEY),
   allowedRoles("customer"),
   validate(cancelOrderItemSchema),
@@ -168,6 +172,7 @@ router.patch(
 
 router.post(
   "/orders/stripe",
+  authLimiter(1, 10),
   authentication("accessToken", process.env.ACCESS_TOKEN_SECRET_KEY),
   allowedRoles("customer"),
   validate(createCodOrderSchema),
@@ -176,6 +181,7 @@ router.post(
 
 router.post(
   "/orders/stripe/retry",
+  authLimiter(1, 10),
   authentication("accessToken", process.env.ACCESS_TOKEN_SECRET_KEY),
   allowedRoles("customer"),
   asyncHandler(OrderController.retryStripePayment)
@@ -184,6 +190,7 @@ router.post(
 //seller orders
 router.get(
   "/seller/orders",
+  authLimiter(1, 50),
   authentication("accessToken", process.env.ACCESS_TOKEN_SECRET_KEY),
   allowedRoles("seller"),
   validate(sellerOrdersQuerySchema),
@@ -191,6 +198,7 @@ router.get(
 )
 router.get(
   "/seller/orders/stats",
+  authLimiter(1, 50),
   authentication("accessToken", process.env.ACCESS_TOKEN_SECRET_KEY),
   allowedRoles("seller"),
   asyncHandler(OrderController.sellerOrderStats)
@@ -198,6 +206,7 @@ router.get(
 
 router.patch(
   "/seller/orders/item-status",
+  authLimiter(1, 20),
   authentication("accessToken", process.env.ACCESS_TOKEN_SECRET_KEY),
   allowedRoles("seller"),
   validate(updateSellerOrderItemStatusSchema),
