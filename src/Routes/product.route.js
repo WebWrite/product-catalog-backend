@@ -23,6 +23,8 @@ import allowedRoles from "../middlewares/allowedRoles.js"
 import validate from "../middlewares/validate.js"
 import { asyncHandler } from "../utils/wrapasync.js"
 import validateObjectId from "../middlewares/validateObjectId.js"
+import { sanitizeRichText } from "../middlewares/sanitizeRichText.middleware.js"
+import { sanitizeFields } from "../middlewares/sanitizeFields.middleware.js"
 import authLimiter from "../middlewares/rateLimiting.js"
 
 const router = Router()
@@ -63,7 +65,9 @@ router.post(
   allowedRoles("seller"),
   upload.single("image"),
   validateImageSignature(true),
+  sanitizeFields(["category", "name"]),
   validate(createProductSchema),
+  sanitizeRichText("description"),
   asyncHandler(addProduct)
 )
 
@@ -229,7 +233,9 @@ router.patch(
   validateObjectId,
   upload.single("image"),
   validateImageSignature(false),
+  sanitizeFields(["category", "name"]),
   validate(updateProductSchema),
+  sanitizeRichText("description"),
   asyncHandler(updateProduct)
 )
 

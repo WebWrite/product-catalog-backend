@@ -20,6 +20,7 @@ import adminRoutes from "./Routes/admin.routes.js"
 import stripeWebHookRoutes from "./Routes/stripewebhook.routes.js"
 import chatRoutes from "./Routes/chat.routes.js"
 import sellerDashboardRoutes from "./Routes/selles.routes.js"
+import ExpressMongoSanitize from "@exortek/express-mongo-sanitize"
 
 export const app = express()
 const baseURL = "/api/v1"
@@ -70,8 +71,14 @@ app.use(requestLogger)
 app.use(`${baseURL}`, stripeWebHookRoutes)
 
 app.use(express.json())
+app.use(express.urlencoded({ extended: true }))
+app.use(ExpressMongoSanitize())
 
 const swaggerDocs = swaggerJsdoc(swaggerOptions)
+<<<<<<< HEAD
+app.use("/api-docs", swaggerUi.serve, swaggerUi.setup(swaggerDocs))
+
+=======
 app.use(
   "/api-docs",
   helmet.contentSecurityPolicy({
@@ -90,6 +97,7 @@ app.use(
   swaggerUi.setup(swaggerDocs)
 )
 app.use(express.urlencoded({ extended: true }))
+>>>>>>> 80582c49b0c7e62108cf4088cdb1216a7bb464c9
 app.use(`${baseURL}/auth`, authRoutes)
 app.use(`${baseURL}/user`, userRoutes)
 app.use(`${baseURL}/chat`, chatRoutes)

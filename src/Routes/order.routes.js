@@ -2,6 +2,7 @@ import { Router } from "express"
 import allowedRoles from "../middlewares/allowedRoles.js"
 import authentication from "../middlewares/authentication.middleware.js"
 import validate from "../middlewares/validate.js"
+import { sanitizeFields } from "../middlewares/sanitizeFields.middleware.js"
 import OrderController from "../Controllers/orderController.js"
 import {
   cancelOrderItemSchema,
@@ -111,7 +112,7 @@ const router = Router()
  *               itemId: { type: string, pattern: '^[a-fA-F0-9]{24}$' }
  *               status:
  *                 type: string
- *                 enum: [pending, confirmed, processing, shipped, delivered, cancelled]
+ *                 enum: [pending, confirmed, delivered, cancelled]
  *     responses:
  *       200: { description: Payment retry started }
  *
@@ -140,7 +141,7 @@ const router = Router()
  *               itemId: { type: string, pattern: '^[a-fA-F0-9]{24}$' }
  *               status:
  *                 type: string
- *                 enum: [pending, confirmed, processing, shipped, delivered, cancelled]
+ *                 enum: [pending, confirmed,delivered, cancelled]
  *     responses:
  *       200: { description: Order item status updated }
  */
@@ -149,6 +150,11 @@ router.post(
   authLimiter(1, 10),
   authentication("accessToken", process.env.ACCESS_TOKEN_SECRET_KEY),
   allowedRoles("customer"),
+  sanitizeFields([
+    "shippingAddress.fullName",
+    "shippingAddress.address",
+    "shippingAddress.city"
+  ]),
   validate(createCodOrderSchema),
   asyncHandler(OrderController.createOrder)
 )
@@ -175,6 +181,11 @@ router.post(
   authLimiter(1, 10),
   authentication("accessToken", process.env.ACCESS_TOKEN_SECRET_KEY),
   allowedRoles("customer"),
+  sanitizeFields([
+    "shippingAddress.fullName",
+    "shippingAddress.address",
+    "shippingAddress.city"
+  ]),
   validate(createCodOrderSchema),
   asyncHandler(OrderController.placeOrderStripe)
 )

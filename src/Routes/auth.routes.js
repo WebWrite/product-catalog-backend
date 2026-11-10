@@ -2,6 +2,7 @@ import { Router } from "express"
 import authentication from "../middlewares/authentication.middleware.js"
 import AuthController from "../Controllers/AuthController.js"
 import validate from "../middlewares/validate.js"
+import { sanitizeFields } from "../middlewares/sanitizeFields.middleware.js"
 import {
   loginSchema,
   sellerSignUpSchema,
@@ -376,6 +377,7 @@ router.post(
 
 router.post(
   "/register-customer",
+  sanitizeFields(["name"]),
   validate(signupSchema),
   authLimiter(1, 3),
   asyncHandler(AuthController.registerUser)
@@ -425,7 +427,11 @@ router.post(
 
 router.post(
   "/register-seller",
+<<<<<<< HEAD
+  sanitizeFields(["name", "storeName", "storeType"]),
+=======
   authLimiter(1, 3),
+>>>>>>> 80582c49b0c7e62108cf4088cdb1216a7bb464c9
   validate(sellerSignUpSchema),
   authLimiter,
   asyncHandler(AuthController.registerSeller)

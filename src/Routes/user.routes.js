@@ -4,6 +4,7 @@ import authentication from "../middlewares/authentication.middleware.js"
 import allowedRoles from "../middlewares/allowedRoles.js"
 import validate from "../middlewares/validate.js"
 import { UpdateProfile } from "../validations/authValidation.js"
+import { sanitizeFields } from "../middlewares/sanitizeFields.middleware.js"
 import authLimiter from "../middlewares/rateLimiting.js"
 
 const router = Router()
@@ -34,6 +35,7 @@ router.patch(
   authLimiter(1, 10),
   authentication("accessToken", process.env.ACCESS_TOKEN_SECRET_KEY),
   allowedRoles("customer", "admin"),
+  sanitizeFields(["name"]),
   validate(UpdateProfile),
   UserController.UpdateProfile
 )

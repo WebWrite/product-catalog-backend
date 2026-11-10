@@ -24,6 +24,7 @@
   },
   "homepage": "https://github.com/WebWrite/product-catalog-backend#readme",
   "dependencies": {
+    "@exortek/express-mongo-sanitize": "^4.0.0",
     "bcryptjs": "^3.0.3",
     "cloudinary": "^2.11.0",
     "cookie-parser": "^1.4.7",
@@ -40,6 +41,7 @@
     "multer": "^2.4.0",
     "nodemailer": "^10.0.15",
     "redis": "^6.3.0",
+    "sanitize-html": "^2.18.1",
     "sharp": "^0.35.5",
     "socket.io": "^4.8.4",
     "streamifier": "^0.1.1",

@@ -17,6 +17,7 @@ import {
   updateSellerProfileValidation
 } from "../validations/sellerValidation.js"
 import validate from "../middlewares/validate.js"
+import { sanitizeFields } from "../middlewares/sanitizeFields.middleware.js"
 import authLimiter from "../middlewares/rateLimiting.js"
 
 const router = Router()
@@ -212,6 +213,7 @@ router.patch(
   "/seller/profile",
   authLimiter(1, 10),
   ...sellerAuthentication,
+  sanitizeFields(["name", "storeName", "storeType"]),
   validate(updateSellerProfileValidation),
   asyncHandler(updateSellerProfileController)
 )
