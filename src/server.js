@@ -19,7 +19,8 @@ const runServer = async () => {
   await connectDB()
   connectRedis()
 
-  initializeSocket(httpServer)
+  const io = initializeSocket(httpServer)
+  app.set("io", io)
 
   httpServer.listen(PORT, () => {
     logger.info(`${SUCCESS_MESSAGES.SERVER_IS_RUNNING} on PORT :: ${PORT}`)

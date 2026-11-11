@@ -58,7 +58,13 @@ class AuthController {
   }
 
   static async Logout(req, res) {
+    const userId = req.user.id
+
     await UserManager.invalidateRefreshToken(req.cookies.refreshToken)
+
+    const io = req.app.get("io")
+    io.in(`user:${userId}`).disconnectSockets(true)
+
     AuthCookies.clearCookies(res)
     await logActivity({
       userId: req.user.id,
