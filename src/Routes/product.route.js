@@ -23,6 +23,9 @@ import allowedRoles from "../middlewares/allowedRoles.js"
 import validate from "../middlewares/validate.js"
 import { asyncHandler } from "../utils/wrapasync.js"
 import validateObjectId from "../middlewares/validateObjectId.js"
+import { sanitizeRichText } from "../middlewares/sanitizeRichText.middleware.js"
+import { sanitizeFields } from "../middlewares/sanitizeFields.middleware.js"
+import authLimiter from "../middlewares/rateLimiting.js"
 
 const router = Router()
 
@@ -57,11 +60,14 @@ const router = Router()
  */
 router.post(
   "/seller/add-product",
+  authLimiter(1, 20),
   authentication("accessToken", process.env.ACCESS_TOKEN_SECRET_KEY),
   allowedRoles("seller"),
   upload.single("image"),
   validateImageSignature(true),
+  sanitizeFields(["category", "name"]),
   validate(createProductSchema),
+  sanitizeRichText("description"),
   asyncHandler(addProduct)
 )
 
@@ -83,6 +89,7 @@ router.post(
  */
 router.get(
   "/seller/products",
+  authLimiter(1, 30),
   authentication("accessToken", process.env.ACCESS_TOKEN_SECRET_KEY),
   allowedRoles("seller"),
   asyncHandler(getSellerProducts)
@@ -100,6 +107,7 @@ router.get(
  */
 router.get(
   "/seller/products/stats",
+  authLimiter(1, 30),
   authentication("accessToken", process.env.ACCESS_TOKEN_SECRET_KEY),
   allowedRoles("seller"),
   asyncHandler(getSellerProductStats)
@@ -128,6 +136,7 @@ router.get(
  */
 router.patch(
   "/seller/update-stock/:id",
+  authLimiter(1, 20),
   authentication("accessToken", process.env.ACCESS_TOKEN_SECRET_KEY),
   allowedRoles("seller"),
   validate(updateProductStockSchema),
@@ -148,6 +157,7 @@ router.patch(
  */
 router.delete(
   "/seller/delete-product/:id",
+  authLimiter(1, 20),
   authentication("accessToken", process.env.ACCESS_TOKEN_SECRET_KEY),
   allowedRoles("seller"),
   asyncHandler(deleteProduct)
@@ -179,6 +189,7 @@ router.delete(
  */
 router.delete(
   "/seller/bulk-delete",
+  authLimiter(1, 10),
   authentication("accessToken", process.env.ACCESS_TOKEN_SECRET_KEY),
   allowedRoles("seller"),
   validate(bulkDeleteProductsSchema),
@@ -216,12 +227,15 @@ router.delete(
  */
 router.patch(
   "/seller/update-product/:id",
+  authLimiter(1, 15),
   authentication("accessToken", process.env.ACCESS_TOKEN_SECRET_KEY),
   allowedRoles("seller"),
   validateObjectId,
   upload.single("image"),
   validateImageSignature(false),
+  sanitizeFields(["category", "name"]),
   validate(updateProductSchema),
+  sanitizeRichText("description"),
   asyncHandler(updateProduct)
 )
 
@@ -253,7 +267,12 @@ router.patch(
  *     responses:
  *       200: { description: Product details }
  */
-router.get("/", asyncHandler(getAllProducts))
-router.get("/:id", validateObjectId, asyncHandler(getProductById))
+router.get("/", authLimiter(1, 30), asyncHandler(getAllProducts))
+router.get(
+  "/:id",
+  authLimiter(1, 50),
+  validateObjectId,
+  asyncHandler(getProductById)
+)
 
 export default router

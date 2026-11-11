@@ -2,6 +2,7 @@ import { Router } from "express"
 import allowedRoles from "../middlewares/allowedRoles.js"
 import authentication from "../middlewares/authentication.middleware.js"
 import validate from "../middlewares/validate.js"
+import { sanitizeFields } from "../middlewares/sanitizeFields.middleware.js"
 import OrderController from "../Controllers/orderController.js"
 import {
   cancelOrderItemSchema,
@@ -10,6 +11,7 @@ import {
   updateSellerOrderItemStatusSchema
 } from "../validations/orderValidation.js"
 import { asyncHandler } from "../utils/wrapasync.js"
+import authLimiter from "../middlewares/rateLimiting.js"
 
 const router = Router()
 
@@ -110,7 +112,7 @@ const router = Router()
  *               itemId: { type: string, pattern: '^[a-fA-F0-9]{24}$' }
  *               status:
  *                 type: string
- *                 enum: [pending, confirmed, processing, shipped, delivered, cancelled]
+ *                 enum: [pending, confirmed, delivered, cancelled]
  *     responses:
  *       200: { description: Payment retry started }
  *
@@ -139,20 +141,27 @@ const router = Router()
  *               itemId: { type: string, pattern: '^[a-fA-F0-9]{24}$' }
  *               status:
  *                 type: string
- *                 enum: [pending, confirmed, processing, shipped, delivered, cancelled]
+ *                 enum: [pending, confirmed,delivered, cancelled]
  *     responses:
  *       200: { description: Order item status updated }
  */
 router.post(
   "/orders/cod",
+  authLimiter(1, 10),
   authentication("accessToken", process.env.ACCESS_TOKEN_SECRET_KEY),
   allowedRoles("customer"),
+  sanitizeFields([
+    "shippingAddress.fullName",
+    "shippingAddress.address",
+    "shippingAddress.city"
+  ]),
   validate(createCodOrderSchema),
   asyncHandler(OrderController.createOrder)
 )
 
 router.get(
   "/orders/my-orders",
+  authLimiter(1, 30),
   authentication("accessToken", process.env.ACCESS_TOKEN_SECRET_KEY),
   allowedRoles("customer"),
   asyncHandler(OrderController.getMyOrdersController)
@@ -160,6 +169,7 @@ router.get(
 
 router.patch(
   "/orders/cancel-item",
+  authLimiter(1, 10),
   authentication("accessToken", process.env.ACCESS_TOKEN_SECRET_KEY),
   allowedRoles("customer"),
   validate(cancelOrderItemSchema),
@@ -168,14 +178,21 @@ router.patch(
 
 router.post(
   "/orders/stripe",
+  authLimiter(1, 10),
   authentication("accessToken", process.env.ACCESS_TOKEN_SECRET_KEY),
   allowedRoles("customer"),
+  sanitizeFields([
+    "shippingAddress.fullName",
+    "shippingAddress.address",
+    "shippingAddress.city"
+  ]),
   validate(createCodOrderSchema),
   asyncHandler(OrderController.placeOrderStripe)
 )
 
 router.post(
   "/orders/stripe/retry",
+  authLimiter(1, 10),
   authentication("accessToken", process.env.ACCESS_TOKEN_SECRET_KEY),
   allowedRoles("customer"),
   asyncHandler(OrderController.retryStripePayment)
@@ -184,6 +201,7 @@ router.post(
 //seller orders
 router.get(
   "/seller/orders",
+  authLimiter(1, 50),
   authentication("accessToken", process.env.ACCESS_TOKEN_SECRET_KEY),
   allowedRoles("seller"),
   validate(sellerOrdersQuerySchema),
@@ -191,6 +209,7 @@ router.get(
 )
 router.get(
   "/seller/orders/stats",
+  authLimiter(1, 50),
   authentication("accessToken", process.env.ACCESS_TOKEN_SECRET_KEY),
   allowedRoles("seller"),
   asyncHandler(OrderController.sellerOrderStats)
@@ -198,6 +217,7 @@ router.get(
 
 router.patch(
   "/seller/orders/item-status",
+  authLimiter(1, 20),
   authentication("accessToken", process.env.ACCESS_TOKEN_SECRET_KEY),
   allowedRoles("seller"),
   validate(updateSellerOrderItemStatusSchema),
