@@ -30,7 +30,7 @@ const initializeSocket = (httpServer) => {
         )
 
         if (payload.id !== socket.data.user.userId) {
-          throw new AppError("Invalid token")
+          throw new AppError("Invalid token ")
         }
 
         //     const refreshDecoded = jwt.verify(
@@ -67,6 +67,9 @@ const initializeSocket = (httpServer) => {
     socket.on("disconnect", (reason) => {
       console.log("Socket disconnected:", socket.id, reason)
     })
+    // socket.on("connect_error", (error) => {
+    //   console.log("Socket connection failed:", error.message)
+    // })
   })
   return io
 }
