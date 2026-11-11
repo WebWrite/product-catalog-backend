@@ -25,15 +25,14 @@ const socketAuth = async (socket, next) => {
 
     const user = await User.findById(decoded.id)
 
-    if (!user || user.refreshToken !== refreshToken) {
-      throw new AppError(ERROR_MESSAGES.TOKEN_INVALID, HTTP_STATUS.UNAUTHORIZED)
-    }
-
     if (user.status === "inactive") {
       throw new AppError(
         ERROR_MESSAGES.ACCOUNT_INACTIVE,
         HTTP_STATUS.UNAUTHORIZED
       )
+    }
+    if (!user || user.refreshToken !== refreshToken) {
+      throw new AppError(ERROR_MESSAGES.TOKEN_INVALID, HTTP_STATUS.UNAUTHORIZED)
     }
 
     socket.data.user = {
