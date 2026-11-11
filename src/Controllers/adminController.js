@@ -280,6 +280,14 @@ class AdminController {
     if (!seller) {
       throw new AppError(ERROR_MESSAGES.SELLER_NOT_FOUND, HTTP_STATUS.NOT_FOUND)
     }
+
+    if (req.body.status === "inactive") {
+      const io = req.app.get("io")
+      const userId = seller.userId._id.toString()
+
+      io.in(`user:${userId}`).disconnectSockets(true)
+    }
+
     await logActivity({
       userId: req.user.id,
       action: "UPDATE SELLER DETAILS",
@@ -322,6 +330,12 @@ class AdminController {
     if (!customer) {
       throw new AppError(ERROR_MESSAGES.USER_NOT_FOUND, HTTP_STATUS.NOT_FOUND)
     }
+
+    if (req.body.status === "inactive") {
+      const io = req.app.get("io")
+      io.in(`user:${req.params.id}`).disconnectSockets(true)
+    }
+
     await logActivity({
       userId: req.user.id,
       action: "UPDATE CUSTOMER DETAILS",
