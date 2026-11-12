@@ -40,6 +40,24 @@ const paymentSchema = new mongoose.Schema(
       type: Date,
       default: null
     },
+    paymentIntentId: {
+      type: String,
+      default: null,
+      index: true
+    },
+    refundId: {
+      type: String,
+      default: null
+    },
+    refundStatus: {
+      type: String,
+      enum: ["pending", "succeeded", "failed", "canceled"],
+      default: null
+    },
+    refundFailureReason: {
+      type: String,
+      default: null
+    },
     status: {
       type: String,
       enum: ["pending", "completed", "failed", "refund_pending", "refunded"],
@@ -51,7 +69,7 @@ const paymentSchema = new mongoose.Schema(
     timestamps: true
   }
 )
+paymentSchema.index({ paymentExpiresAt: 1 }, { expireAfterSeconds: 0 })
 
 const Payment = mongoose.model("Payment", paymentSchema)
-paymentSchema.index({ paymentExpiresAt: 1 }, { expireAfterSeconds: 0 })
 export default Payment

@@ -61,6 +61,32 @@ class PaymentRepository {
       }
     )
   }
+
+  static updateRefundDetails(paymentId, refund) {
+    return Payment.findOneAndUpdate(
+      {
+        _id: paymentId,
+        status: "refund_pending"
+      },
+      {
+        $set: {
+          refundId: refund.id,
+          refundStatus: refund.status,
+          refundFailureReason: refund.failure_reason ?? null,
+          ...(refund.status === "succeeded" && {
+            status: "refunded"
+          })
+        }
+      },
+      {
+        returnDocument: "after",
+        runValidators: true
+      }
+    )
+  }
+  static findById(paymentId) {
+    return Payment.findById(paymentId).lean()
+  }
 }
 
 export default PaymentRepository

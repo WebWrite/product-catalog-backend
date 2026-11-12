@@ -551,6 +551,7 @@ class OrderManager {
     let payment
     let order
     let stockFailure = false
+    let refundPaymentId = null
     try {
       try {
         await dbSession.withTransaction(async () => {
@@ -789,9 +790,13 @@ class OrderManager {
         } finally {
           await refundSession.endSession()
         }
+        refundPaymentId = payment._id
       }
     } finally {
       await dbSession.endSession()
+    }
+    if (refundPaymentId) {
+      await this.processStripeRefund(refundPaymentId)
     }
   }
 
@@ -916,6 +921,39 @@ class OrderManager {
       orderId: order._id,
       checkoutUrl: checkoutSession.url
     }
+  }
+
+  static async processStripeRefund(paymentId) {
+    const payment = await PaymentRepository.findById(paymentId)
+
+    if (!payment || payment.status !== "refund_pending") {
+      throw new Error("Refund-required payment not found.")
+    }
+
+    if (!payment.paymentIntentId) {
+      throw new Error("PaymentIntent ID is missing.")
+    }
+
+    const refund = await stripe.refunds.create(
+      {
+        payment_intent: payment.paymentIntentId,
+        reason: "requested_by_customer"
+      },
+      {
+        idempotencyKey: `refund-${payment._id}`
+      }
+    )
+
+    const updatedPayment = await PaymentRepository.updateRefundDetails(
+      payment._id,
+      refund
+    )
+
+    if (!updatedPayment) {
+      throw new Error("Unable to update payment refund details.")
+    }
+
+    return updatedPayment
   }
 }
 
