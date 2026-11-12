@@ -687,8 +687,27 @@ class OrderManager {
             dbSession
           )
 
-          await CartRepository.clearCartForOrder(order.customerId, dbSession)
+          const cart = await CartRepository.getCartForOrder(
+            order.customerId,
+            dbSession
+          )
 
+          const isCartUnchanged = (cartItems, orderItems) => {
+            if (cartItems.length !== orderItems.length) return false
+
+            return cartItems.every((cartItem) =>
+              orderItems.some(
+                (orderItem) =>
+                  orderItem.productId.toString() ===
+                    cartItem.productId.toString() &&
+                  orderItem.quantity === cartItem.quantity
+              )
+            )
+          }
+
+          if (cart?.items?.length && isCartUnchanged(cart.items, order.items)) {
+            await CartRepository.clearCartForOrder(order.customerId, dbSession)
+          }
           await ActivityLog.create(
             [
               {
@@ -798,26 +817,6 @@ class OrderManager {
     if (["refund_pending", "refunded"].includes(payment?.status)) {
       throw new AppError(
         "Payment cannot be retried because a refund is pending or has already been issued.",
-        HTTP_STATUS.CONFLICT
-      )
-    }
-    const cart = await CartRepository.getCartForOrder(customerId)
-
-    const cartItems = new Set(
-      (cart?.items ?? []).map(
-        (item) => `${item.productId}:${item.quantity}:${item.size ?? ""}`
-      )
-    )
-
-    const isCartMatchingOrder =
-      cartItems.size === order.items.length &&
-      order.items.every((item) =>
-        cartItems.has(`${item.productId}:${item.quantity}:${item.size ?? ""}`)
-      )
-
-    if (!isCartMatchingOrder) {
-      throw new AppError(
-        "Your current cart does not match this order. Make a new order",
         HTTP_STATUS.CONFLICT
       )
     }
