@@ -20,12 +20,14 @@ class PaymentRepository {
       { sessionId },
       {
         $set: updates,
-        ...(updates.status === "completed" && {
+        ...(["completed", "refund_pending", "refunded"].includes(
+          updates.status
+        ) && {
           $unset: { paymentExpiresAt: 1 }
         })
       },
       {
-        new: true,
+        returnDocument: "after",
         runValidators: true,
         session
       }
@@ -39,6 +41,23 @@ class PaymentRepository {
       {
         returnDocument: "after",
         runValidators: true
+      }
+    )
+  }
+  static markRefundPending(sessionId, paymentIntentId, session) {
+    return Payment.findOneAndUpdate(
+      { sessionId, status: "pending" },
+      {
+        $set: {
+          status: "refund_pending",
+          paymentIntentId
+        },
+        $unset: { paymentExpiresAt: 1 }
+      },
+      {
+        returnDocument: "after",
+        runValidators: true,
+        session
       }
     )
   }

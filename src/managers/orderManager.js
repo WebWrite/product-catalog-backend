@@ -548,159 +548,229 @@ class OrderManager {
 
     const dbSession = await mongoose.startSession()
 
+    let payment
+    let order
+    let stockFailure = false
     try {
-      await dbSession.withTransaction(async () => {
-        const payment = await PaymentRepository.findBySessionId(
-          checkoutSession.id,
-          dbSession
-        )
+      try {
+        await dbSession.withTransaction(async () => {
+          stockFailure = false
 
-        if (!payment || payment.status !== "pending") return
-
-        const order = await OrderRepository.findOrderById(
-          payment.orderId,
-          dbSession
-        )
-
-        if (!order || order.paymentStatus !== "pending") return
-
-        if (!order.items.every((item) => item.status === "pending")) return
-
-        if (isFailed) {
-          await PaymentRepository.updatePaymentBySessionId(
+          payment = await PaymentRepository.findBySessionId(
             checkoutSession.id,
-            { status: "failed" },
+            dbSession
+          )
+
+          if (!payment || payment.status !== "pending") return
+
+          order = await OrderRepository.findOrderById(
+            payment.orderId,
+            dbSession
+          )
+
+          if (!order || order.paymentStatus !== "pending") return
+
+          if (!order.items.every((item) => item.status === "pending")) return
+
+          if (isFailed) {
+            await PaymentRepository.updatePaymentBySessionId(
+              checkoutSession.id,
+              { status: "failed" },
+              dbSession
+            )
+
+            await OrderRepository.updateOrderPaymentStatus(
+              order._id,
+              "failed",
+              dbSession
+            )
+
+            await ActivityLog.create(
+              [
+                {
+                  userId: order.customerId,
+                  action: "STRIPE_PAYMENT_FAILED",
+                  target: "Payment",
+                  role: "customer",
+                  status: "failure",
+                  message: "Stripe payment failed or checkout expired",
+                  requestId,
+                  metadata: {
+                    orderId: order._id,
+                    paymentId: payment._id,
+                    sessionId: checkoutSession.id,
+                    stripeEventId: event.id,
+                    eventType: event.type
+                  }
+                }
+              ],
+              { session: dbSession }
+            )
+
+            return
+          }
+
+          if (
+            checkoutSession.amount_total !== Math.round(order.total * 100) ||
+            checkoutSession.amount_total !== Math.round(payment.amount * 100) ||
+            checkoutSession.currency?.toLowerCase() !==
+              payment.currency.toLowerCase()
+          ) {
+            throw new AppError(
+              "Invalid payment details.",
+              HTTP_STATUS.BAD_REQUEST
+            )
+          }
+
+          // Bulk stock decrement
+          const operations = order.items.map((item) => ({
+            updateOne: {
+              filter: {
+                _id: item.productId,
+                status: "active",
+                stock: { $gte: item.quantity }
+              },
+              update: {
+                $inc: { stock: -item.quantity }
+              }
+            }
+          }))
+
+          const stockResult = await OrderRepository.decreaseStockForOrder(
+            operations,
+            dbSession
+          )
+
+          if (stockResult.matchedCount !== operations.length) {
+            stockFailure = true
+
+            throw new AppError(
+              "Insufficient stock or unavailable product.",
+              HTTP_STATUS.CONFLICT
+            )
+          }
+
+          // Prepare stock history
+          const updatedProducts = await OrderRepository.findProductsForOrder(
+            order.items.map((item) => item.productId),
+            dbSession
+          )
+
+          const historyEntries = order.items.map((item) => {
+            const product = updatedProducts.find(
+              (product) => product._id.toString() === item.productId.toString()
+            )
+
+            return {
+              productId: product._id,
+              sellerId: item.sellerId,
+              previousStock: product.stock + item.quantity,
+              newStock: product.stock,
+              reason: "order"
+            }
+          })
+
+          await OrderRepository.createOrderStockHistory(
+            historyEntries,
             dbSession
           )
 
           await OrderRepository.updateOrderPaymentStatus(
             order._id,
-            "failed",
+            "completed",
             dbSession
           )
+
+          await PaymentRepository.updatePaymentBySessionId(
+            checkoutSession.id,
+            { status: "completed" },
+            dbSession
+          )
+
+          await CartRepository.clearCartForOrder(order.customerId, dbSession)
 
           await ActivityLog.create(
             [
               {
                 userId: order.customerId,
-                action: "STRIPE_PAYMENT_FAILED",
+                action: "STRIPE_PAYMENT_COMPLETED",
                 target: "Payment",
                 role: "customer",
-                status: "failure",
-                message: "Stripe payment failed or checkout expired",
+                status: "success",
+                message: "Stripe payment completed successfully",
                 requestId,
                 metadata: {
                   orderId: order._id,
                   paymentId: payment._id,
                   sessionId: checkoutSession.id,
                   stripeEventId: event.id,
-                  eventType: event.type
+                  amount: payment.amount,
+                  currency: payment.currency
                 }
               }
             ],
             { session: dbSession }
           )
-
-          return
-        }
-
-        if (
-          checkoutSession.amount_total !== Math.round(order.total * 100) ||
-          checkoutSession.amount_total !== Math.round(payment.amount * 100) ||
-          checkoutSession.currency?.toLowerCase() !==
-            payment.currency.toLowerCase()
-        ) {
-          throw new AppError(
-            "Invalid payment details.",
-            HTTP_STATUS.BAD_REQUEST
-          )
-        }
-
-        // Bulk stock decrement
-        const operations = order.items.map((item) => ({
-          updateOne: {
-            filter: {
-              _id: item.productId,
-              status: "active",
-              stock: { $gte: item.quantity }
-            },
-            update: {
-              $inc: { stock: -item.quantity }
-            }
-          }
-        }))
-
-        const stockResult = await OrderRepository.decreaseStockForOrder(
-          operations,
-          dbSession
-        )
-
-        if (stockResult.matchedCount !== operations.length) {
-          throw new AppError(
-            "Insufficient stock or unavailable product.",
-            HTTP_STATUS.CONFLICT
-          )
-        }
-
-        // Prepare stock history
-        const updatedProducts = await OrderRepository.findProductsForOrder(
-          order.items.map((item) => item.productId),
-          dbSession
-        )
-
-        const historyEntries = order.items.map((item) => {
-          const product = updatedProducts.find(
-            (product) => product._id.toString() === item.productId.toString()
-          )
-
-          return {
-            productId: product._id,
-            sellerId: item.sellerId,
-            previousStock: product.stock + item.quantity,
-            newStock: product.stock,
-            reason: "order"
-          }
         })
+      } catch (error) {
+        if (!stockFailure) throw error
 
-        await OrderRepository.createOrderStockHistory(historyEntries, dbSession)
+        const paymentIntentId = checkoutSession.payment_intent
 
-        await OrderRepository.updateOrderPaymentStatus(
-          order._id,
-          "completed",
-          dbSession
-        )
-
-        await PaymentRepository.updatePaymentBySessionId(
-          checkoutSession.id,
-          { status: "completed" },
-          dbSession
-        )
-
-        await CartRepository.clearCartForOrder(order.customerId, dbSession)
-
-        await ActivityLog.create(
-          [
+        if (!paymentIntentId) {
+          throw new Error(
+            "PaymentIntent ID is missing for a paid Checkout Session.",
             {
-              userId: order.customerId,
-              action: "STRIPE_PAYMENT_COMPLETED",
-              target: "Payment",
-              role: "customer",
-              status: "success",
-              message: "Stripe payment completed successfully",
-              requestId,
-              metadata: {
-                orderId: order._id,
-                paymentId: payment._id,
-                sessionId: checkoutSession.id,
-                stripeEventId: event.id,
-                amount: payment.amount,
-                currency: payment.currency
-              }
+              cause: error
             }
-          ],
-          { session: dbSession }
-        )
-      })
+          )
+        }
+        const refundSession = await mongoose.startSession()
+
+        try {
+          await refundSession.withTransaction(async () => {
+            const updatedPayment = await PaymentRepository.markRefundPending(
+              checkoutSession.id,
+              paymentIntentId,
+              refundSession
+            )
+
+            const updatedOrder = await OrderRepository.markOrderFailedForRefund(
+              order._id,
+              refundSession
+            )
+            if (!updatedPayment || !updatedOrder) {
+              throw new Error("Unable to persist refund-required state.", {
+                cause: error
+              })
+            }
+            await ActivityLog.create(
+              [
+                {
+                  userId: order.customerId,
+                  action: "STRIPE_REFUND_REQUIRED",
+                  target: "Payment",
+                  role: "customer",
+                  status: "failure",
+                  message:
+                    "Stripe payment succeeded but stock was unavailable. Refund required.",
+                  requestId,
+                  metadata: {
+                    orderId: order._id,
+                    paymentId: payment._id,
+                    sessionId: checkoutSession.id,
+                    paymentIntentId,
+                    stripeEventId: event.id
+                  }
+                }
+              ],
+              { session: refundSession }
+            )
+          })
+        } finally {
+          await refundSession.endSession()
+        }
+      }
     } finally {
       await dbSession.endSession()
     }
@@ -717,6 +787,20 @@ class OrderManager {
       throw new AppError("Order not found.", HTTP_STATUS.NOT_FOUND)
     }
 
+    const payment = await PaymentRepository.findByOrderId(order._id)
+
+    if (!payment) {
+      throw new AppError(
+        "Payment record not found for this order.",
+        HTTP_STATUS.NOT_FOUND
+      )
+    }
+    if (["refund_pending", "refunded"].includes(payment?.status)) {
+      throw new AppError(
+        "Payment cannot be retried because a refund is pending or has already been issued.",
+        HTTP_STATUS.CONFLICT
+      )
+    }
     const cart = await CartRepository.getCartForOrder(customerId)
 
     const cartItems = new Set(
@@ -801,11 +885,14 @@ class OrderManager {
       }
     })
 
-    const payment = await PaymentRepository.updatePaymentByOrderId(order._id, {
-      sessionId: checkoutSession.id
-    })
+    const updatedPayment = await PaymentRepository.updatePaymentByOrderId(
+      order._id,
+      {
+        sessionId: checkoutSession.id
+      }
+    )
 
-    if (!payment) {
+    if (!updatedPayment) {
       throw new AppError(
         "Payment record not found for this order.",
         HTTP_STATUS.NOT_FOUND

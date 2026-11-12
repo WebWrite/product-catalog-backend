@@ -413,6 +413,24 @@ class OrderRepository {
   static findOrderById(orderId, session) {
     return Order.findById(orderId).session(session ?? null)
   }
+
+  static markOrderFailedForRefund(orderId, session) {
+    return Order.findOneAndUpdate(
+      {
+        _id: orderId,
+        paymentStatus: "pending"
+      },
+      {
+        $set: { paymentStatus: "failed" },
+        $unset: { paymentExpiresAt: 1 }
+      },
+      {
+        returnDocument: "after",
+        runValidators: true,
+        session
+      }
+    )
+  }
 }
 
 export default OrderRepository
