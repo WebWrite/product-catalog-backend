@@ -28,10 +28,7 @@ const refreshAuthentication = (requestToken, secretKey) => {
       const user = await User.findById(payload.id)
       if (user.status === "inactive") {
         return next(
-          new AppError(
-            ERROR_MESSAGES.ACCOUNT_INACTIVE,
-            HTTP_STATUS.UNAUTHORIZED
-          )
+          new AppError(ERROR_MESSAGES.ACCOUNT_INACTIVE, HTTP_STATUS.FORBIDDEN)
         )
       }
 
