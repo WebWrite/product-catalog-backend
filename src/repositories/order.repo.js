@@ -431,6 +431,25 @@ class OrderRepository {
       }
     )
   }
+
+  static updateOrderForPaymentRetry(orderId, paymentExpiresAt) {
+    return Order.findOneAndUpdate(
+      {
+        _id: orderId,
+        paymentStatus: { $in: ["pending", "failed"] }
+      },
+      {
+        $set: {
+          paymentStatus: "pending",
+          paymentExpiresAt
+        }
+      },
+      {
+        returnDocument: "after",
+        runValidators: true
+      }
+    )
+  }
 }
 
 export default OrderRepository

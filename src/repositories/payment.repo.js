@@ -87,6 +87,56 @@ class PaymentRepository {
   static findById(paymentId) {
     return Payment.findById(paymentId).lean()
   }
+
+  static async updateRefundFromStripe(refund) {
+    const statusMap = {
+      pending: "refund_pending",
+      succeeded: "refunded",
+      failed: "refund_failed",
+      canceled: "refund_failed"
+    }
+
+    const status = statusMap[refund.status]
+
+    if (!status) {
+      throw new Error(`Unsupported refund status: ${refund.status}`)
+    }
+
+    const paymentIntentId = refund.payment_intent?.id ?? refund.payment_intent
+
+    const payment = await Payment.findOne({ paymentIntentId })
+
+    if (!payment) return null
+
+    if (["refunded", "refund_failed"].includes(payment.status)) {
+      return payment
+    }
+
+    if (payment.status !== "refund_pending") {
+      throw new Error(
+        `Cannot update refund. Current payment status: ${payment.status}`
+      )
+    }
+
+    return Payment.findOneAndUpdate(
+      {
+        _id: payment._id,
+        status: "refund_pending"
+      },
+      {
+        $set: {
+          refundId: refund.id,
+          refundStatus: refund.status,
+          refundFailureReason: refund.failure_reason ?? null,
+          status
+        }
+      },
+      {
+        returnDocument: "after",
+        runValidators: true
+      }
+    )
+  }
 }
 
 export default PaymentRepository

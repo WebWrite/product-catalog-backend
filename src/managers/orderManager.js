@@ -6,6 +6,7 @@ import CartRepository from "../repositories/cart.repo.js"
 import stripe from "../config/stripe.js"
 import PaymentRepository from "../repositories/payment.repo.js"
 import ActivityLog from "../models/AcitivtyLog.js"
+import refundQueue from "../queues/refundQueue.js"
 
 const SHIPPING_COST = 10
 
@@ -533,6 +534,11 @@ class OrderManager {
       )
     }
 
+    const refundEvents = ["refund.created", "refund.updated", "refund.failed"]
+
+    if (refundEvents.includes(event.type)) {
+      return this.handleStripeRefundWebhook(event)
+    }
     const checkoutSession = event.data.object
 
     const isSuccess =
@@ -562,7 +568,14 @@ class OrderManager {
             dbSession
           )
 
-          if (!payment || payment.status !== "pending") return
+          if (!payment) return
+
+          if (payment.status === "refund_pending") {
+            refundPaymentId = payment._id
+            return
+          }
+
+          if (payment.status !== "pending") return
 
           order = await OrderRepository.findOrderById(
             payment.orderId,
@@ -796,7 +809,23 @@ class OrderManager {
       await dbSession.endSession()
     }
     if (refundPaymentId) {
-      await this.processStripeRefund(refundPaymentId)
+      try {
+        await this.processStripeRefund(refundPaymentId)
+      } catch (error) {
+        if (this.isRetryableStripeError(error)) {
+          await refundQueue.add(
+            "process-refund",
+            { paymentId: refundPaymentId.toString() },
+            { jobId: `refund-${refundPaymentId}` }
+          )
+          console.error(
+            "Immediate refund failed. Added retry job:",
+            error.message
+          )
+        } else {
+          throw error
+        }
+      }
     }
   }
 
@@ -819,7 +848,9 @@ class OrderManager {
         HTTP_STATUS.NOT_FOUND
       )
     }
-    if (["refund_pending", "refunded"].includes(payment?.status)) {
+    if (
+      ["refund_pending", "refund_failed", "refunded"].includes(payment?.status)
+    ) {
       throw new AppError(
         "Payment cannot be retried because a refund is pending or has already been issued.",
         HTTP_STATUS.CONFLICT
@@ -889,10 +920,14 @@ class OrderManager {
       }
     })
 
+    const paymentExpiresAt = new Date(Date.now() + 30 * 60 * 1000)
+
     const updatedPayment = await PaymentRepository.updatePaymentByOrderId(
       order._id,
       {
-        sessionId: checkoutSession.id
+        sessionId: checkoutSession.id,
+        status: "pending",
+        paymentExpiresAt
       }
     )
 
@@ -900,6 +935,18 @@ class OrderManager {
       throw new AppError(
         "Payment record not found for this order.",
         HTTP_STATUS.NOT_FOUND
+      )
+    }
+
+    const updatedOrder = await OrderRepository.updateOrderForPaymentRetry(
+      order._id,
+      paymentExpiresAt
+    )
+
+    if (!updatedOrder) {
+      throw new AppError(
+        "Unable to prepare order for payment retry.",
+        HTTP_STATUS.CONFLICT
       )
     }
 
@@ -926,8 +973,18 @@ class OrderManager {
   static async processStripeRefund(paymentId) {
     const payment = await PaymentRepository.findById(paymentId)
 
-    if (!payment || payment.status !== "refund_pending") {
-      throw new Error("Refund-required payment not found.")
+    if (!payment) {
+      throw new Error("Payment record not found.")
+    }
+    if (["refunded", "refund_failed"].includes(payment.status)) {
+      return payment
+    }
+
+    if (payment.status !== "refund_pending") {
+      throw new Error("Payment is not eligible for a refund.")
+    }
+    if (payment.refundId) {
+      return payment
     }
 
     if (!payment.paymentIntentId) {
@@ -949,11 +1006,41 @@ class OrderManager {
       refund
     )
 
-    if (!updatedPayment) {
-      throw new Error("Unable to update payment refund details.")
+    if (updatedPayment) {
+      return updatedPayment
+    }
+    const latestPayment = await PaymentRepository.findById(paymentId)
+
+    if (
+      latestPayment &&
+      (["refunded", "refund_failed"].includes(latestPayment.status) ||
+        latestPayment.refundId === refund.id)
+    ) {
+      return latestPayment
     }
 
-    return updatedPayment
+    throw new Error("Unable to update payment refund details.")
+  }
+
+  static async handleStripeRefundWebhook(event) {
+    const refund = event.data.object
+
+    const payment = await PaymentRepository.updateRefundFromStripe(refund)
+
+    if (!payment) {
+      throw new Error(`Payment not found for Stripe refund: ${refund.id}`)
+    }
+
+    return payment
+  }
+  static isRetryableStripeError(error) {
+    return (
+      error.type === "StripeConnectionError" ||
+      error.type === "StripeAPIError" ||
+      error.type === "StripeRateLimitError" ||
+      error.statusCode === 429 ||
+      error.statusCode >= 500
+    )
   }
 }
 
