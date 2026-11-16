@@ -17,23 +17,7 @@ class OrderController {
   }
 
   static async getMyOrdersController(req, res) {
-    const {
-      page = 1,
-      limit = 10,
-      search = "",
-      paymentMethod = "",
-      paymentStatus = ""
-    } = req.query
-
-    const filters = {
-      page: Math.max(1, Number(page) || 1),
-      limit: Math.min(50, Math.max(1, Number(limit) || 10)),
-      search: search.trim(),
-      paymentMethod,
-      paymentStatus
-    }
-
-    const orders = await OrderManager.getMyOrders(req.user.id, filters)
+    const orders = await OrderManager.getMyOrders(req.user.id, req.query)
 
     return res.status(HTTP_STATUS.OK).json({
       success: true,
