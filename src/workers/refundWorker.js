@@ -2,7 +2,7 @@ import "dotenv/config"
 import { Worker } from "bullmq"
 import mongoose from "mongoose"
 import bullmqRedis from "../config/bullmqRedis.js"
-import { connectDB } from "../config/db.js"
+import { connectDB } from "../config/database.config.js"
 import OrderManager from "../managers/orderManager.js"
 
 const refundWorker = async () => {
@@ -12,8 +12,6 @@ const refundWorker = async () => {
     "stripe-refunds",
     async (job) => {
       const { paymentId } = job.data
-
-      console.log(`Processing refund job: ${job.id}`)
 
       return OrderManager.processStripeRefund(paymentId)
     },

@@ -768,7 +768,7 @@ class OrderManager {
               refundSession
             )
 
-            const updatedOrder = await OrderRepository.markOrderFailedForRefund(
+            const updatedOrder = await OrderRepository.markOrderRefundPending(
               order._id,
               refundSession
             )
@@ -1007,6 +1007,11 @@ class OrderManager {
     )
 
     if (updatedPayment) {
+      await OrderRepository.updateOrderRefundStatus(
+        payment.orderId,
+        updatedPayment.status
+      )
+
       return updatedPayment
     }
     const latestPayment = await PaymentRepository.findById(paymentId)
@@ -1016,6 +1021,10 @@ class OrderManager {
       (["refunded", "refund_failed"].includes(latestPayment.status) ||
         latestPayment.refundId === refund.id)
     ) {
+      await OrderRepository.updateOrderRefundStatus(
+        payment.orderId,
+        latestPayment.status
+      )
       return latestPayment
     }
 
@@ -1030,6 +1039,11 @@ class OrderManager {
     if (!payment) {
       throw new Error(`Payment not found for Stripe refund: ${refund.id}`)
     }
+
+    await OrderRepository.updateOrderRefundStatus(
+      payment.orderId,
+      payment.status
+    )
 
     return payment
   }

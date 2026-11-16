@@ -63,25 +63,30 @@ class PaymentRepository {
   }
 
   static updateRefundDetails(paymentId, refund) {
+    const statusMap = {
+      pending: "refund_pending",
+      succeeded: "refunded",
+      failed: "refund_failed",
+      canceled: "refund_failed"
+    }
+
+    const status = statusMap[refund.status]
+
+    if (!status) {
+      throw new Error(`Unsupported refund status: ${refund.status}`)
+    }
+
     return Payment.findOneAndUpdate(
-      {
-        _id: paymentId,
-        status: "refund_pending"
-      },
+      { _id: paymentId, status: "refund_pending" },
       {
         $set: {
           refundId: refund.id,
           refundStatus: refund.status,
           refundFailureReason: refund.failure_reason ?? null,
-          ...(refund.status === "succeeded" && {
-            status: "refunded"
-          })
+          status
         }
       },
-      {
-        returnDocument: "after",
-        runValidators: true
-      }
+      { returnDocument: "after", runValidators: true }
     )
   }
   static findById(paymentId) {

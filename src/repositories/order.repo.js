@@ -345,7 +345,7 @@ class OrderRepository {
       {
         $match: {
           "items.sellerId": sellerObjectId,
-          paymentStatus: { $ne: "failed" }
+          paymentStatus: { $in: ["pending", "completed"] }
         }
       },
       { $unwind: "$items" },
@@ -378,7 +378,7 @@ class OrderRepository {
       {
         $match: {
           "items.sellerId": sellerObjectId,
-          paymentStatus: { $ne: "failed" },
+          paymentStatus: { $in: ["pending", "completed"] },
           createdAt: { $gte: startDate, $lt: endDate }
         }
       },
@@ -414,14 +414,14 @@ class OrderRepository {
     return Order.findById(orderId).session(session ?? null)
   }
 
-  static markOrderFailedForRefund(orderId, session) {
+  static markOrderRefundPending(orderId, session) {
     return Order.findOneAndUpdate(
       {
         _id: orderId,
-        paymentStatus: "pending"
+        paymentStatus: { $in: ["pending", "completed"] }
       },
       {
-        $set: { paymentStatus: "failed" },
+        $set: { paymentStatus: "refund_pending" },
         $unset: { paymentExpiresAt: 1 }
       },
       {
@@ -444,6 +444,16 @@ class OrderRepository {
           paymentExpiresAt
         }
       },
+      {
+        returnDocument: "after",
+        runValidators: true
+      }
+    )
+  }
+  static updateOrderRefundStatus(orderId, paymentStatus) {
+    return Order.findOneAndUpdate(
+      { _id: orderId, paymentStatus: "refund_pending" },
+      { $set: { paymentStatus } },
       {
         returnDocument: "after",
         runValidators: true
