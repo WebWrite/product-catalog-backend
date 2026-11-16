@@ -164,6 +164,7 @@ router.get(
   authLimiter(1, 30),
   authentication("accessToken", process.env.ACCESS_TOKEN_SECRET_KEY),
   allowedRoles("customer"),
+  validate(sellerOrdersQuerySchema),
   asyncHandler(OrderController.getMyOrdersController)
 )
 

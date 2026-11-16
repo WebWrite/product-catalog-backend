@@ -64,7 +64,14 @@ export const sellerOrdersQuerySchema = Joi.object({
   search: Joi.string().trim().max(100).allow("").default(""),
   paymentMethod: Joi.string().valid("COD", "STRIPE").allow("").default(""),
   paymentStatus: Joi.string()
-    .valid("pending", "completed", "failed")
+    .valid(
+      "pending",
+      "completed",
+      "failed",
+      "refund_pending",
+      "refunded",
+      "refund_failed"
+    )
     .allow("")
     .default("")
 })
