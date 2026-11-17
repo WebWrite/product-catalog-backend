@@ -6,7 +6,7 @@ import AppError from "../utils/AppError.js"
 
 class CartManager {
   static async AddCartItem(data) {
-    const { productId } = data
+    const { productId, quantity, userId } = data
     const product = await Product.findById(productId)
 
     if (!product || product.status !== "active") {
@@ -14,6 +14,16 @@ class CartManager {
         ERROR_MESSAGES.PRODUCT_NOT_FOUND,
         HTTP_STATUS.NOT_FOUND
       )
+    }
+
+    const cart = await CartRepository.getCart(userId)
+    const currentProductQuantity = (cart?.items ?? [])
+      .filter((item) => item.productId._id.toString() === productId.toString())
+      .reduce((total, item) => total + item.quantity, 0)
+    const requestedQuantity = currentProductQuantity + quantity
+
+    if (product.stock <= 0 || requestedQuantity > product.stock) {
+      throw new AppError(ERROR_MESSAGES.LOW_STOCK, HTTP_STATUS.BAD_REQUEST)
     }
 
     return await CartRepository.AddItem(data)
@@ -55,6 +65,25 @@ class CartManager {
         ERROR_MESSAGES.CART_QUANTITY_EXCEED,
         HTTP_STATUS.BAD_REQUEST
       )
+    }
+
+    if (quantity > 0) {
+      const product = await Product.findById(item.productId)
+      const currentProductQuantity = cart.items
+        .filter(
+          (cartItem) =>
+            cartItem.productId._id.toString() === item.productId._id.toString()
+        )
+        .reduce((total, cartItem) => total + cartItem.quantity, 0)
+      const requestedProductQuantity = currentProductQuantity + quantity
+
+      if (
+        !product ||
+        product.stock <= 0 ||
+        requestedProductQuantity > product.stock
+      ) {
+        throw new AppError(ERROR_MESSAGES.LOW_STOCK, HTTP_STATUS.BAD_REQUEST)
+      }
     }
 
     return await CartRepository.editCart(cart, data)
