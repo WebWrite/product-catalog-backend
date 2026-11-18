@@ -454,134 +454,195 @@ class AdminRepository {
     page = Math.max(1, Number(page) || 1)
     limit = Math.min(100, Math.max(1, Number(limit) || 10))
 
-    const filter = {}
+    const skip = (page - 1) * limit
 
-    if (status === "active") {
-      filter.status = "active"
-    } else if (status === "inactive") {
-      filter.status = "inactive"
-    }
+    const escapeRegex = (value) => value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")
+
+    const pipeline = [
+      {
+        $match: {
+          role: "seller",
+          ...(status === "active" || status === "inactive" ? { status } : {})
+        }
+      },
+
+      {
+        $lookup: {
+          from: SellerProfile.collection.name,
+          localField: "_id",
+          foreignField: "userId",
+          as: "profile"
+        }
+      },
+      {
+        $unwind: {
+          path: "$profile",
+          preserveNullAndEmptyArrays: true
+        }
+      }
+    ]
 
     if (search?.trim()) {
-      const regex = new RegExp(
-        search.trim().replace(/[.*+?^${}()|[\]\\]/g, "\\$&"),
-        "i"
-      )
+      const regex = new RegExp(escapeRegex(search.trim()), "i")
 
-      filter.$or = [{ name: regex }, { email: regex }]
+      pipeline.push({
+        $match: {
+          $or: [
+            { name: regex },
+            { email: regex },
+            { "profile.storeName": regex }
+          ]
+        }
+      })
     }
-
-    let usersQuery = User.find({
-      role: "seller",
-      ...filter
-    }).select("_id name email status createdAt")
 
     if (category) {
-      const sellerIds = await Product.distinct("sellerId", {
-        category
-      })
-
-      usersQuery = usersQuery.where("_id").in(sellerIds)
-    }
-
-    const users = await usersQuery.lean()
-
-    const userIds = users.map((user) => user._id)
-
-    const profiles = await SellerProfile.find({
-      userId: { $in: userIds },
-      ...(search?.trim()
-        ? {
-            storeName: new RegExp(
-              search.trim().replace(/[.*+?^${}()|[\]\\]/g, "\\$&"),
-              "i"
-            )
-          }
-        : {})
-    }).lean()
-
-    const profileMap = new Map(
-      profiles.map((profile) => [profile.userId.toString(), profile])
-    )
-
-    let sellers = users
-      .filter(
-        (user) =>
-          !search?.trim() ||
-          profileMap.has(user._id.toString()) ||
-          new RegExp(
-            search.trim().replace(/[.*+?^${}()|[\]\\]/g, "\\$&"),
-            "i"
-          ).test(user.name) ||
-          new RegExp(
-            search.trim().replace(/[.*+?^${}()|[\]\\]/g, "\\$&"),
-            "i"
-          ).test(user.email)
-      )
-      .map((user) => ({
-        ...user,
-        profile: profileMap.get(user._id.toString()) || null
-      }))
-      .sort((a, b) => b.createdAt - a.createdAt)
-
-    const totalSellers = sellers.length
-    const totalPages = Math.ceil(totalSellers / limit)
-
-    sellers = sellers.slice((page - 1) * limit, page * limit)
-
-    const monthStart = new Date()
-    monthStart.setDate(1)
-    monthStart.setHours(0, 0, 0, 0)
-
-    const result = await Promise.all(
-      sellers.map(async (seller) => {
-        const [productCount, orderStats] = await Promise.all([
-          Product.countDocuments({
-            sellerId: seller._id
-          }),
-
-          Order.aggregate([
-            { $match: { createdAt: { $gte: monthStart } } },
-            { $unwind: "$items" },
+      pipeline.push({
+        $lookup: {
+          from: Product.collection.name,
+          let: { sellerId: "$_id" },
+          pipeline: [
             {
               $match: {
-                "items.sellerId": seller._id,
-                "items.status": { $ne: "cancelled" }
+                $expr: {
+                  $eq: ["$sellerId", "$$sellerId"]
+                },
+                category,
+                isDeleted: { $ne: true }
               }
             },
-            {
-              $group: {
-                _id: null,
-                monthlySales: { $sum: "$items.itemTotal" },
-                orders: { $addToSet: "$_id" }
-              }
-            }
-          ])
-        ])
-
-        const stats = orderStats[0] || {
-          monthlySales: 0,
-          orders: []
-        }
-
-        return {
-          userId: seller._id,
-          _id: seller.profile?._id || null,
-          name: seller.name,
-          email: seller.email,
-          status: seller.status,
-          createdAt: seller.createdAt,
-          storeName: seller.profile?.storeName || null,
-          storeType: seller.profile?.storeType || null,
-          productCount,
-          monthlySales: stats.monthlySales,
-          monthlyOrders: stats.orders.length
+            { $limit: 1 }
+          ],
+          as: "matchingProducts"
         }
       })
-    )
+
+      pipeline.push({
+        $match: {
+          "matchingProducts.0": { $exists: true }
+        }
+      })
+    }
+
+    pipeline.push({
+      $facet: {
+        total: [{ $count: "count" }],
+
+        sellers: [
+          { $sort: { createdAt: -1 } },
+          { $skip: skip },
+          { $limit: limit },
+
+          {
+            $lookup: {
+              from: Product.collection.name,
+              let: { sellerId: "$_id" },
+              pipeline: [
+                {
+                  $match: {
+                    $expr: {
+                      $eq: ["$sellerId", "$$sellerId"]
+                    },
+                    isDeleted: { $ne: true }
+                  }
+                },
+                { $count: "count" }
+              ],
+              as: "productStats"
+            }
+          },
+          {
+            $addFields: {
+              productCount: {
+                $ifNull: [{ $arrayElemAt: ["$productStats.count", 0] }, 0]
+              }
+            }
+          },
+          {
+            $project: {
+              name: 1,
+              email: 1,
+              status: 1,
+              createdAt: 1,
+              profile: 1,
+              productCount: 1
+            }
+          }
+        ]
+      }
+    })
+
+    const [result] = await User.aggregate(pipeline)
+
+    const users = result.sellers
+    const totalSellers = result.total[0]?.count || 0
+
+    const now = new Date()
+    const monthStart = new Date(now.getFullYear(), now.getMonth(), 1)
+
+    const sellerIds = users.map((user) => user._id)
+
+    const monthlyStats = sellerIds.length
+      ? await Order.aggregate([
+          {
+            $match: {
+              createdAt: { $gte: monthStart },
+              "items.sellerId": { $in: sellerIds }
+            }
+          },
+          { $unwind: "$items" },
+          {
+            $match: {
+              "items.sellerId": { $in: sellerIds },
+              "items.status": { $ne: "cancelled" }
+            }
+          },
+          {
+            $group: {
+              _id: "$items.sellerId",
+              monthlySales: {
+                $sum: "$items.itemTotal"
+              },
+              orders: {
+                $addToSet: "$_id"
+              }
+            }
+          },
+          {
+            $project: {
+              monthlySales: 1,
+              monthlyOrders: {
+                $size: "$orders"
+              }
+            }
+          }
+        ])
+      : []
+
+    const sellers = users.map((user) => {
+      const stats = monthlyStats.find(
+        (item) => item._id.toString() === user._id.toString()
+      )
+
+      return {
+        userId: user._id,
+        _id: user.profile?._id || null,
+        name: user.name,
+        email: user.email,
+        status: user.status,
+        createdAt: user.createdAt,
+        storeName: user.profile?.storeName || null,
+        storeType: user.profile?.storeType || null,
+        productCount: user.productCount,
+        monthlySales: stats?.monthlySales || 0,
+        monthlyOrders: stats?.monthlyOrders || 0
+      }
+    })
+
+    const totalPages = Math.ceil(totalSellers / limit)
 
     return {
-      sellers: result,
+      sellers,
       pagination: {
         page,
         limit,
