@@ -39,12 +39,35 @@ class ChatRepository {
   }
 
   static async getUserConversations(userId) {
-    const conversations = await Conversation.find({
-      participants: userId
-    })
-      .select("_id participants")
-      .populate("participants", "name role")
-      .lean()
+    const conversations = await Conversation.aggregate([
+      {
+        $match: {
+          participants: new mongoose.Types.ObjectId(userId)
+        }
+      },
+      {
+        $lookup: {
+          from: User.collection.name,
+          localField: "participants",
+          foreignField: "_id",
+          pipeline: [
+            {
+              $project: {
+                name: 1,
+                role: 1
+              }
+            }
+          ],
+          as: "participants"
+        }
+      },
+      {
+        $project: {
+          _id: 1,
+          participants: 1
+        }
+      }
+    ])
 
     const unreadCounts = await Message.aggregate([
       {
