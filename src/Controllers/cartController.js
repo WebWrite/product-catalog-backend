@@ -96,7 +96,7 @@ class CartController {
       role: req.user.role,
       message: "Customer merge the cart",
       requestId: req.requestId,
-      metadata: { items: cart.cart.items }
+      metadata: { items: cart.cart?.items ?? [] }
     })
     return res.status(HTTP_STATUS.CREATED).json({
       success: true,

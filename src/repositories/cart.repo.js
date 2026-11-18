@@ -53,6 +53,10 @@ class CartRepository {
     })
   }
 
+  static getCartForUpdate(userId) {
+    return Cart.findOne({ userId })
+  }
+
   static async editCart(cart, data) {
     const item = cart.items.id(data.itemId)
     item.quantity += data.quantity
@@ -90,7 +94,7 @@ class CartRepository {
       const existing = cart.items.find(
         (i) =>
           i.productId.toString() === item.productId.toString() &&
-          i.size === item.size
+          (i.size ?? null) === (item.size ?? null)
       )
 
       if (existing) {
@@ -98,6 +102,7 @@ class CartRepository {
       } else {
         cart.items.push({
           ...item,
+          size: item.size ?? null,
           quantity: Math.min(25, item.quantity)
         })
       }

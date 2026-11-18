@@ -1,4 +1,5 @@
 import { HTTP_STATUS } from "../constants/statusCodes.js"
+import AuthCookies from "../helpers/cookieOptions.js"
 import {
   changeSellerPasswordManager,
   getSellerActivityLogsManager,
@@ -80,6 +81,9 @@ export const changeSellerPasswordController = async (req, res) => {
       message: "Seller account not found"
     })
   }
+
+  AuthCookies.clearCookies(res)
+  req.app.get("io")?.in(`user:${req.user.id}`).disconnectSockets(true)
 
   return res.status(HTTP_STATUS.OK).json({
     success: true,

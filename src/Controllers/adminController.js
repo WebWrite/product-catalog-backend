@@ -281,11 +281,11 @@ class AdminController {
       throw new AppError(ERROR_MESSAGES.SELLER_NOT_FOUND, HTTP_STATUS.NOT_FOUND)
     }
 
-    if (req.body.status === "inactive") {
+    if (req.body.status === "inactive" || req.body.password) {
       const io = req.app.get("io")
       const userId = seller.userId._id.toString()
 
-      io.in(`user:${userId}`).disconnectSockets(true)
+      io?.in(`user:${userId}`).disconnectSockets(true)
     }
 
     await logActivity({
@@ -331,9 +331,9 @@ class AdminController {
       throw new AppError(ERROR_MESSAGES.USER_NOT_FOUND, HTTP_STATUS.NOT_FOUND)
     }
 
-    if (req.body.status === "inactive") {
+    if (req.body.status === "inactive" || req.body.password) {
       const io = req.app.get("io")
-      io.in(`user:${req.params.id}`).disconnectSockets(true)
+      io?.in(`user:${req.params.id}`).disconnectSockets(true)
     }
 
     await logActivity({

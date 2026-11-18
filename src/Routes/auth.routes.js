@@ -430,7 +430,6 @@ router.post(
   sanitizeFields(["name", "storeName", "storeType"]),
   authLimiter(1, 3),
   validate(sellerSignUpSchema),
-  authLimiter,
   asyncHandler(AuthController.registerSeller)
 )
 

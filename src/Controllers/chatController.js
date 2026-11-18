@@ -116,6 +116,7 @@ class ChatSocketController {
       return
     }
     socket.to(roomId).emit("typing", {
+      roomId,
       userId: socket.data.user.userId,
       isTyping
     })

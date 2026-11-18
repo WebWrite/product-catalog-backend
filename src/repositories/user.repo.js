@@ -67,7 +67,8 @@ class UserRepository {
       userId,
       {
         $set: {
-          password: hashedPassword
+          password: hashedPassword,
+          refreshToken: null
         }
       },
       {
@@ -79,13 +80,20 @@ class UserRepository {
       .lean()
   }
   static async UpdateUser(id, data) {
+    const updates = {}
+
+    if (data.newPassword !== undefined) {
+      updates.password = data.newPassword
+      updates.refreshToken = null
+    }
+    if (data.name !== undefined) {
+      updates.name = data.name
+    }
+
     return await User.findByIdAndUpdate(
       id,
-      {
-        password: data.newPassword,
-        name: data.name
-      },
-      { returnDocument: "after" }
+      { $set: updates },
+      { returnDocument: "after", runValidators: true }
     )
   }
 }
