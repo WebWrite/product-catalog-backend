@@ -10,7 +10,7 @@ import { HTTP_STATUS } from "../constants/statusCodes.js"
 import CartRepository from "../repositories/cart.repo.js"
 import CartManager from "./cartManager.js"
 class UserManager {
-  static async registerUser(data, session) {
+  static async registerUser(data, session, { sendOtp = true } = {}) {
     let isUser = await UserUtil.findUserWitEmail(data.email)
     if (isUser) {
       throw new AppError(
@@ -21,7 +21,9 @@ class UserManager {
     const hashedPassword = await bcrypt.hash(data.password, 10)
     data.password = hashedPassword
     const user = await UserRepository.createUser(data, session)
-    await OtpUtils.sendOtp(data.name, data.email, "signup")
+    if (sendOtp && !session) {
+      await OtpUtils.sendOtp(data.name, data.email, "signup")
+    }
     return user
   }
 
@@ -39,7 +41,8 @@ class UserManager {
             password,
             role: "seller"
           },
-          session
+          session,
+          { sendOtp: false }
         )
         createdUser = user
         await UserRepository.createSellerProfile(
@@ -131,6 +134,9 @@ class UserManager {
   static async verifyLoginOtp(data) {
     const { email, otp } = data
     const user = await UserUtil.findUserWitEmail(email)
+    if (!user) {
+      throw new AppError(ERROR_MESSAGES.USER_NOT_FOUND, HTTP_STATUS.NOT_FOUND)
+    }
     if (user.status == "inactive") {
       throw new AppError(ERROR_MESSAGES.ACCOUNT_INACTIVE, HTTP_STATUS.FORBIDDEN)
     }
@@ -187,7 +193,8 @@ class UserManager {
     if (!user) {
       throw new AppError(ERROR_MESSAGES.USER_NOT_FOUND, HTTP_STATUS.NOT_FOUND)
     }
-    if (data.oldPassword) {
+    const passwordChanged = Boolean(data.oldPassword)
+    if (passwordChanged) {
       let verify = await bcrypt.compare(data.oldPassword, user.password)
       if (!verify) {
         throw new AppError(
@@ -199,6 +206,9 @@ class UserManager {
       data.newPassword = hashedPassword
     }
     let updatedUser = await UserRepository.UpdateUser(id, data)
+    if (!updatedUser) {
+      throw new AppError(ERROR_MESSAGES.USER_NOT_FOUND, HTTP_STATUS.NOT_FOUND)
+    }
     let cart = await CartRepository.findUserCartCount(id)
 
     return {

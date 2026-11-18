@@ -423,6 +423,7 @@ router.get(
 router.get(
   "/customers/:id",
   adminAnalyticsLimiter,
+  ...adminAuthentication,
   validateObjectId,
   asyncHandler(AdminController.findCusomterOrders)
 )

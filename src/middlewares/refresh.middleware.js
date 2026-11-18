@@ -26,13 +26,20 @@ const refreshAuthentication = (requestToken, secretKey) => {
 
     try {
       const user = await User.findById(payload.id)
+
+      if (!user) {
+        return next(
+          new AppError(ERROR_MESSAGES.TOKEN_INVALID, HTTP_STATUS.UNAUTHORIZED)
+        )
+      }
+
       if (user.status === "inactive") {
         return next(
           new AppError(ERROR_MESSAGES.ACCOUNT_INACTIVE, HTTP_STATUS.FORBIDDEN)
         )
       }
 
-      if (!user || user.refreshToken !== token) {
+      if (user.refreshToken !== token) {
         return next(
           new AppError(ERROR_MESSAGES.TOKEN_INVALID, HTTP_STATUS.UNAUTHORIZED)
         )
