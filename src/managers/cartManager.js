@@ -1,34 +1,72 @@
+import mongoose from "mongoose"
 import { ERROR_MESSAGES } from "../constants/errorMessages.js"
 import { HTTP_STATUS } from "../constants/statusCodes.js"
+import Cart from "../models/Cart.js"
 import Product from "../models/Product.js"
 import CartRepository from "../repositories/cart.repo.js"
 import AppError from "../utils/AppError.js"
 
 class CartManager {
   static async AddCartItem(data) {
-    const { productId, quantity, userId } = data
-    const product = await Product.findById(productId)
+    const { productId, quantity, userId, size } = data
 
-    if (!product || product.status !== "active") {
+    const [result] = await Product.aggregate([
+      {
+        $match: {
+          _id: new mongoose.Types.ObjectId(productId),
+          status: "active"
+        }
+      },
+      {
+        $lookup: {
+          from: Cart.collection.name,
+          let: { userId: new mongoose.Types.ObjectId(userId) },
+          pipeline: [
+            {
+              $match: {
+                $expr: { $eq: ["$userId", "$$userId"] }
+              }
+            },
+            {
+              $project: {
+                items: 1
+              }
+            }
+          ],
+          as: "cart"
+        }
+      },
+      {
+        $project: {
+          stock: 1,
+          cart: 1
+        }
+      }
+    ])
+
+    if (!result) {
       throw new AppError(
         ERROR_MESSAGES.PRODUCT_NOT_FOUND,
         HTTP_STATUS.NOT_FOUND
       )
     }
 
-    const cart = await CartRepository.getCartForUpdate(userId)
-    const currentProductQuantity = (cart?.items ?? [])
-      .filter((item) => item.productId.toString() === productId.toString())
-      .reduce((total, item) => total + item.quantity, 0)
-    const requestedQuantity = currentProductQuantity + quantity
+    const cart = result.cart[0]
 
-    if (product.stock <= 0 || requestedQuantity > product.stock) {
+    const currentProductQuantity = (cart?.items ?? []).reduce(
+      (total, item) =>
+        item.productId.toString() === productId.toString()
+          ? total + item.quantity
+          : total,
+      0
+    )
+
+    if (result.stock <= 0 || currentProductQuantity + quantity > result.stock) {
       throw new AppError(ERROR_MESSAGES.LOW_STOCK, HTTP_STATUS.BAD_REQUEST)
     }
 
-    return await CartRepository.AddItem(data)
+    return CartRepository.AddItem(data, cart)
   }
-
   static async FetchCart(userId) {
     return await CartRepository.getCart(userId)
   }
