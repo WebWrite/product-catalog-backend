@@ -108,7 +108,7 @@ export const deleteProductByOwner = async (productId, sellerId) => {
         deletedAt: new Date()
       }
     },
-    { new: true, runValidators: true }
+    { returnDocument: "after", runValidators: true }
   )
 }
 
@@ -144,7 +144,7 @@ export const updateProductStockByOwner = async (
   Product.findOneAndUpdate(
     { _id: productId, sellerId, stock: currentStock },
     { $set: { stock } },
-    { new: true, runValidators: true }
+    { returnDocument: "after", runValidators: true }
   ).lean()
 
 export const findProductByOwner = async (productId, sellerId) =>
@@ -154,7 +154,7 @@ export const updateProductByOwner = async (productId, sellerId, data) =>
   Product.findOneAndUpdate(
     { _id: productId, sellerId },
     { $set: data },
-    { new: true, runValidators: true }
+    { returnDocument: "after", runValidators: true }
   ).lean()
 
 export const findProductStockByOwner = async (productId, sellerId) =>

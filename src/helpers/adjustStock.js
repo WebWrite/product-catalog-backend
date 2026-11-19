@@ -7,7 +7,7 @@ export const adjustStock = async (productId, quantity) => {
   const product = await Product.findOneAndUpdate(
     { _id: productId, status: "active", stock: { $gte: quantity } },
     { $inc: { stock: -quantity } },
-    { new: true }
+    { returnDocument: "after" }
   )
 
   if (!product) {

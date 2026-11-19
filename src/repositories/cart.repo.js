@@ -36,7 +36,7 @@ class CartRepository {
             "items.$.quantity": newQuantity
           }
         },
-        { new: true, runValidators: true }
+        { returnDocument: "after", runValidators: true }
       )
     }
 
@@ -49,7 +49,7 @@ class CartRepository {
         $setOnInsert: { userId }
       },
       {
-        new: true,
+        returnDocument: "after",
         upsert: true,
         runValidators: true,
         setDefaultsOnInsert: true

@@ -129,7 +129,7 @@ class CartManager {
   }
 
   static async removeItem(userId, id) {
-    const cart = await CartRepository.getCart(userId)
+    const cart = await CartRepository.getCartForUpdate(userId)
 
     if (!cart || cart.items.length === 0) {
       throw new AppError(ERROR_MESSAGES.EMPTY_CART, HTTP_STATUS.NOT_FOUND)

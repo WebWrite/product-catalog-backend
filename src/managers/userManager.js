@@ -9,6 +9,7 @@ import AppError from "../utils/AppError.js"
 import { HTTP_STATUS } from "../constants/statusCodes.js"
 import CartRepository from "../repositories/cart.repo.js"
 import CartManager from "./cartManager.js"
+
 class UserManager {
   static async registerUser(data, session, { sendOtp = true } = {}) {
     let isUser = await UserUtil.findUserWitEmail(data.email)
@@ -174,8 +175,15 @@ class UserManager {
   }
 
   static async findUserById(id) {
-    let user = await UserRepository.finUserbyId(id)
-    let cart = await CartRepository.findUserCartCount(id)
+    const [user, cart] = await Promise.all([
+      UserRepository.finUserbyId(id),
+      CartRepository.findUserCartCount(id)
+    ])
+
+    if (!user) {
+      throw new AppError("User not found", 404)
+    }
+
     return {
       id: user.id,
       name: user.name,

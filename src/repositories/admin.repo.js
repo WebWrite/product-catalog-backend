@@ -396,7 +396,7 @@ class AdminRepository {
     return Product.findOneAndUpdate(
       { _id: productId },
       { $set: data },
-      { new: true, runValidators: true }
+      { returnDocument: "after", runValidators: true }
     ).lean()
   }
 
@@ -409,7 +409,7 @@ class AdminRepository {
           deletedAt: new Date()
         }
       },
-      { new: true, runValidators: true }
+      { returnDocument: "after", runValidators: true }
     )
   }
 
@@ -443,7 +443,7 @@ class AdminRepository {
         $set: { "items.$.status": status }
       },
       {
-        new: true,
+        returnDocument: "after",
         session,
         runValidators: true
       }
@@ -691,10 +691,7 @@ class AdminRepository {
     await User.findOneAndUpdate(
       { _id: seller.userId, role: "seller" },
       { $set: userUpdate },
-      {
-        new: true,
-        runValidators: true
-      }
+      { returnDocument: "after", runValidators: true }
     ).select("name email role status isVerified createdAt")
 
     await SellerProfile.findByIdAndUpdate(
@@ -706,7 +703,7 @@ class AdminRepository {
         }
       },
       {
-        new: true,
+        returnDocument: "after",
         runValidators: true
       }
     )
@@ -798,10 +795,7 @@ class AdminRepository {
     return await User.findOneAndUpdate(
       { _id: id, role: "customer" },
       { $set: update },
-      {
-        new: true,
-        runValidators: true
-      }
+      { returnDocument: "after", runValidators: true }
     ).select("name email role status isVerified createdAt")
   }
 

@@ -141,9 +141,7 @@ class ChatRepository {
       {
         $set: { seen: true }
       },
-      {
-        new: true
-      }
+      { returnDocument: "after" }
     )
       .select("_id roomId")
       .lean()

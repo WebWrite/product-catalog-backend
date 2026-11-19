@@ -6,7 +6,7 @@ class SellerProfileRepository {
       { userId },
       { $set: changes },
       {
-        new: true,
+        returnDocument: "after",
         runValidators: true,
         session
       }

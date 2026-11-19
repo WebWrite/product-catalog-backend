@@ -25,7 +25,7 @@ class UserRepository {
     return User.findOneAndUpdate(
       { _id: userId },
       { refreshToken },
-      { new: true, runValidators: true }
+      { returnDocument: "after", runValidators: true }
     )
   }
 
@@ -53,7 +53,7 @@ class UserRepository {
       userId,
       { $set: changes },
       {
-        new: true,
+        returnDocument: "after",
         runValidators: true,
         session
       }
@@ -72,7 +72,7 @@ class UserRepository {
         }
       },
       {
-        new: true,
+        returnDocument: "after",
         runValidators: true
       }
     )
