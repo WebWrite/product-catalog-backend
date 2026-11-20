@@ -3,18 +3,19 @@ import { ERROR_MESSAGES } from "../constants/errorMessages.js"
 import { HTTP_STATUS } from "../constants/statusCodes.js"
 import Cart from "../models/Cart.js"
 import AppError from "../utils/AppError.js"
+import User from "../models/User.js"
+import Product from "../models/Product.js"
 
 class CartRepository {
-  static async AddItem(data) {
+  static async AddItem(data, cart) {
     const { userId, productId, quantity, size } = data
-
-    const cart = await Cart.findOne({ userId })
 
     const existingItem = cart?.items.find(
       (item) =>
         item.productId.toString() === productId.toString() &&
         (size == null ? item.size == null : item.size === size)
     )
+
     const newQuantity = (existingItem?.quantity ?? 0) + quantity
 
     if (newQuantity > 25) {
@@ -24,33 +25,86 @@ class CartRepository {
       )
     }
 
-    if (!cart) {
-      return await Cart.create({
-        userId,
-        items: [{ productId, quantity, size }]
-      })
-    }
-
     if (existingItem) {
-      existingItem.quantity = newQuantity
-    } else {
-      cart.items.push({ productId, quantity, size })
+      return Cart.findOneAndUpdate(
+        {
+          userId,
+          "items._id": existingItem._id
+        },
+        {
+          $set: {
+            "items.$.quantity": newQuantity
+          }
+        },
+        { returnDocument: "after", runValidators: true }
+      )
     }
 
-    await cart.save()
-
-    return cart
+    return Cart.findOneAndUpdate(
+      { userId },
+      {
+        $push: {
+          items: { productId, quantity, size }
+        },
+        $setOnInsert: { userId }
+      },
+      {
+        returnDocument: "after",
+        upsert: true,
+        runValidators: true,
+        setDefaultsOnInsert: true
+      }
+    )
   }
 
   static async getCart(userId) {
-    return await Cart.findOne({ userId }).populate({
-      path: "items.productId",
-
-      populate: {
-        path: "sellerId",
-        select: "name email isVerified"
+    const [cart] = await Cart.aggregate([
+      {
+        $match: {
+          userId: new mongoose.Types.ObjectId(userId)
+        }
+      },
+      {
+        $lookup: {
+          from: Product.collection.name,
+          localField: "items.productId",
+          foreignField: "_id",
+          as: "products"
+        }
       }
-    })
+    ])
+
+    if (!cart) return null
+
+    const sellerIds = cart.products.map((product) => product.sellerId)
+
+    const sellers = await User.find(
+      { _id: { $in: sellerIds } },
+      "name email isVerified"
+    ).lean()
+
+    const sellerMap = new Map(
+      sellers.map((seller) => [seller._id.toString(), seller])
+    )
+
+    const productMap = new Map(
+      cart.products.map((product) => [
+        product._id.toString(),
+        {
+          ...product,
+          sellerId: sellerMap.get(product.sellerId.toString()) ?? null
+        }
+      ])
+    )
+
+    cart.items = cart.items.map((item) => ({
+      ...item,
+      productId: productMap.get(item.productId.toString()) ?? null
+    }))
+
+    delete cart.products
+
+    return cart
   }
 
   static getCartForUpdate(userId) {

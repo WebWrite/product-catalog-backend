@@ -95,7 +95,7 @@ class OrderRepository {
         $set: { "items.$.status": "cancelled" }
       },
       {
-        new: true,
+        returnDocument: "after",
         session,
         runValidators: true
       }
@@ -110,7 +110,7 @@ class OrderRepository {
     const product = await Product.findByIdAndUpdate(
       item.productId,
       { $inc: { stock: item.quantity } },
-      { new: true, session, runValidators: true }
+      { returnDocument: "after", session, runValidators: true }
     ).lean()
 
     if (!product) {
@@ -305,7 +305,7 @@ class OrderRepository {
         $set: { "items.$.status": status }
       },
       {
-        new: true,
+        returnDocument: "after",
         session,
         runValidators: true
       }
@@ -331,7 +331,7 @@ class OrderRepository {
         })
       },
       {
-        new: true,
+        returnDocument: "after",
         runValidators: true,
         session
       }

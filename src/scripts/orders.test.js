@@ -179,7 +179,7 @@ async function seedTestData() {
         },
         $setOnInsert: { email: user.email }
       },
-      { upsert: true, new: true, runValidators: true }
+      { upsert: true, returnDocument: "after", runValidators: true }
     )
 
     userIds.set(user.email, savedUser._id)
@@ -197,7 +197,7 @@ async function seedTestData() {
           storeType: profile.storeType
         }
       },
-      { upsert: true, new: true, runValidators: true }
+      { upsert: true, returnDocument: "after", runValidators: true }
     )
   }
 
@@ -226,7 +226,7 @@ async function seedTestData() {
         },
         $setOnInsert: { sellerId, name: product.name }
       },
-      { upsert: true, new: true, runValidators: true }
+      { upsert: true, returnDocument: "after", runValidators: true }
     )
 
     productIds.set(product.name, savedProduct._id)
@@ -253,7 +253,7 @@ async function seedTestData() {
     await Cart.findOneAndUpdate(
       { userId: userIds.get(cart.customerEmail) },
       { $set: { items } },
-      { upsert: true, new: true, runValidators: true }
+      { upsert: true, returnDocument: "after", runValidators: true }
     )
   }
 
