@@ -174,7 +174,7 @@ class OrderRepository {
               $match: {
                 "items.sellerId": sellerObjectId,
                 "items.status": {
-                  $in: ["delivered", "pending", "confirmed"]
+                  $in: ["delivered", "confirmed"]
                 }
               }
             },
@@ -338,39 +338,44 @@ class OrderRepository {
     )
   }
 
-  static getSellerSalesStats(sellerId) {
+  static async getSellerSalesStats(sellerId) {
     const sellerObjectId = new mongoose.Types.ObjectId(sellerId)
 
-    return Order.aggregate([
+    const [stats] = await Order.aggregate([
       {
         $match: {
-          "items.sellerId": sellerObjectId,
-          paymentStatus: { $in: ["pending", "completed"] }
-        }
-      },
-      { $unwind: "$items" },
-      {
-        $match: {
-          "items.sellerId": sellerObjectId,
-          "items.status": { $ne: "cancelled" }
+          "items.sellerId": sellerObjectId
         }
       },
       {
-        $group: {
-          _id: "$_id",
-          sales: { $sum: "$items.itemTotal" }
-        }
-      },
-      {
-        $group: {
-          _id: null,
-          totalOrders: { $sum: 1 },
-          totalSales: { $sum: "$sales" }
+        $facet: {
+          totalOrders: [{ $count: "count" }],
+          totalSales: [
+            { $unwind: "$items" },
+            {
+              $match: {
+                "items.sellerId": sellerObjectId,
+                "items.status": { $in: ["confirmed", "delivered"] }
+              }
+            },
+            {
+              $group: {
+                _id: null,
+                total: { $sum: "$items.itemTotal" }
+              }
+            }
+          ]
         }
       }
     ])
-  }
 
+    const result = {
+      totalOrders: stats?.totalOrders[0]?.count ?? 0,
+      totalSales: stats?.totalSales[0]?.total ?? 0
+    }
+
+    return [result]
+  }
   static getSellerMonthlySales(sellerId, startDate, endDate) {
     const sellerObjectId = new mongoose.Types.ObjectId(sellerId)
 
@@ -386,7 +391,7 @@ class OrderRepository {
       {
         $match: {
           "items.sellerId": sellerObjectId,
-          "items.status": { $ne: "cancelled" }
+          "items.status": { $in: ["confirmed", "delivered"] }
         }
       },
       {
