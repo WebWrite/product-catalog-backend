@@ -1,3 +1,4 @@
+import mongoose from "mongoose"
 import {
   deleteProductImage,
   uploadProductImage
@@ -14,6 +15,7 @@ import {
   findProductStockByOwner,
   findAllProducts,
   findProductById,
+  findProductsByIds,
   createStockHistory,
   getSellerProductStats,
   countSellerProducts
@@ -246,4 +248,36 @@ export const getProductByIdManager = async (productId) => {
   }
 
   return product
+}
+
+const MAX_PRODUCTS_BY_IDS = 50
+
+export const getProductsByIdsManager = async (idsQuery) => {
+  const rawIds = Array.isArray(idsQuery)
+    ? idsQuery
+    : String(idsQuery ?? "")
+        .split(",")
+        .map((id) => id.trim())
+        .filter(Boolean)
+
+  const uniqueIds = [...new Set(rawIds)]
+
+  if (uniqueIds.length === 0) {
+    throw new AppError(ERROR_MESSAGES.INVALID_REQUEST, HTTP_STATUS.BAD_REQUEST)
+  }
+
+  if (uniqueIds.length > MAX_PRODUCTS_BY_IDS) {
+    throw new AppError(
+      `You can request at most ${MAX_PRODUCTS_BY_IDS} products at once.`,
+      HTTP_STATUS.BAD_REQUEST
+    )
+  }
+
+  const validIds = uniqueIds.filter((id) => mongoose.isValidObjectId(id))
+
+  if (validIds.length === 0) {
+    throw new AppError(ERROR_MESSAGES.INVALID_OBJECT_ID, HTTP_STATUS.BAD_REQUEST)
+  }
+
+  return findProductsByIds(validIds)
 }

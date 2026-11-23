@@ -13,6 +13,7 @@ import {
   deleteProduct,
   getAllProducts,
   getProductById,
+  getProductsByIds,
   getSellerProducts,
   getSellerProductStats,
   updateProduct,
@@ -268,6 +269,18 @@ router.patch(
  *       200: { description: Product details }
  */
 router.get("/", authLimiter(1, 30), asyncHandler(getAllProducts))
+/**
+ * @swagger
+ * /api/v1/by-ids:
+ *   get:
+ *     tags: [Products]
+ *     summary: Get multiple products by IDs
+ *     parameters:
+ *       - { in: query, name: ids, required: true, schema: { type: string }, description: Comma-separated product ObjectIds (max 50) }
+ *     responses:
+ *       200: { description: Matching products }
+ */
+router.get("/by-ids", authLimiter(1, 50), asyncHandler(getProductsByIds))
 router.get(
   "/:id",
   authLimiter(1, 50),
