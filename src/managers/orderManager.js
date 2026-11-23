@@ -7,6 +7,7 @@ import stripe from "../config/stripe.js"
 import PaymentRepository from "../repositories/payment.repo.js"
 import ActivityLog from "../models/AcitivtyLog.js"
 import refundQueue from "../queues/refundQueue.js"
+import crypto from "node:crypto"
 
 const SHIPPING_COST = 10
 
@@ -38,10 +39,47 @@ const getProductSize = (product, requestedSize) => {
   return matchedSize
 }
 
+const generateRequestHash = (data) => {
+  const checkoutData = {
+    shippingAddress: {
+      fullName: data.shippingAddress.fullName,
+      phone: data.shippingAddress.phone,
+      address: data.shippingAddress.address,
+      city: data.shippingAddress.city,
+      postalCode: data.shippingAddress.postalCode
+    }
+  }
+
+  return crypto
+    .createHash("sha256")
+    .update(JSON.stringify(checkoutData))
+    .digest("hex")
+}
 class OrderManager {
-  static async createCodOrder(customerId, data, requestId) {
+  static async createCodOrder(customerId, data, requestId, idempotencyKey) {
     if (!mongoose.isObjectIdOrHexString(customerId)) {
       throw new AppError("Invalid customer ID.", HTTP_STATUS.BAD_REQUEST)
+    }
+
+    const requestHash = generateRequestHash(data)
+
+    const existingOrder = await OrderRepository.findByIdempotencyKey(
+      customerId,
+      idempotencyKey
+    )
+
+    if (existingOrder) {
+      if (existingOrder.requestHash !== requestHash) {
+        throw new AppError(
+          "Idempotency key already used with different checkout data.",
+          HTTP_STATUS.CONFLICT
+        )
+      }
+
+      return {
+        order: existingOrder,
+        replayed: true
+      }
     }
 
     const session = await mongoose.startSession()
@@ -156,7 +194,9 @@ class OrderManager {
             shippingCost: SHIPPING_COST,
             total: subtotal + SHIPPING_COST,
             paymentMethod: "COD",
-            paymentStatus: "pending"
+            paymentStatus: "pending",
+            idempotencyKey,
+            requestHash
           },
           session
         )
@@ -397,7 +437,53 @@ class OrderManager {
     }
   }
 
-  static async createStripeCheckout(customerId, data, requestId) {
+  static async createStripeCheckout(
+    customerId,
+    data,
+    requestId,
+    idempotencyKey
+  ) {
+    const requestHash = generateRequestHash(data)
+
+    const existingOrder = await OrderRepository.findByIdempotencyKey(
+      customerId,
+      idempotencyKey
+    )
+
+    if (existingOrder) {
+      if (existingOrder.requestHash !== requestHash) {
+        throw new AppError(
+          "Idempotency key already used with different checkout data.",
+          HTTP_STATUS.CONFLICT
+        )
+      }
+
+      const payment = await PaymentRepository.findByOrderId(existingOrder._id)
+
+      if (!payment) {
+        throw new AppError(
+          "Payment record not found for existing order.",
+          HTTP_STATUS.CONFLICT
+        )
+      }
+
+      const checkoutSession = await stripe.checkout.sessions.retrieve(
+        payment.sessionId
+      )
+
+      if (checkoutSession.status !== "open" || !checkoutSession.url) {
+        throw new AppError(
+          "Existing checkout session is no longer available.",
+          HTTP_STATUS.CONFLICT
+        )
+      }
+
+      return {
+        orderId: existingOrder._id,
+        checkoutUrl: checkoutSession.url,
+        replayed: true
+      }
+    }
     const cart = await CartRepository.getCartForOrder(customerId)
 
     if (!cart?.items?.length) {
@@ -457,7 +543,9 @@ class OrderManager {
       total,
       paymentMethod: "STRIPE",
       paymentStatus: "pending",
-      paymentExpiresAt
+      paymentExpiresAt,
+      idempotencyKey,
+      requestHash
     })
 
     const lineItems = items.map((item) => ({
@@ -478,13 +566,18 @@ class OrderManager {
       quantity: 1
     })
 
-    const checkoutSession = await stripe.checkout.sessions.create({
-      mode: "payment",
-      line_items: lineItems,
-      expires_at: Math.floor(Date.now() / 1000) + 30 * 60,
-      success_url: `${process.env.CLIENT_URL}/payment/success?session_id={CHECKOUT_SESSION_ID}`,
-      cancel_url: `${process.env.CLIENT_URL}/payment/cancelled`
-    })
+    const checkoutSession = await stripe.checkout.sessions.create(
+      {
+        mode: "payment",
+        line_items: lineItems,
+        expires_at: Math.floor(Date.now() / 1000) + 30 * 60,
+        success_url: `${process.env.CLIENT_URL}/payment/success?session_id={CHECKOUT_SESSION_ID}`,
+        cancel_url: `${process.env.CLIENT_URL}/payment/cancelled`
+      },
+      {
+        idempotencyKey: `checkout-create:${order._id}`
+      }
+    )
 
     await PaymentRepository.createPayment({
       orderId: order._id,
@@ -886,6 +979,19 @@ class OrderManager {
         "Payment cannot be retried for this order.",
         HTTP_STATUS.CONFLICT
       )
+    }
+
+    if (payment.status === "pending" && payment.sessionId) {
+      const existingSession = await stripe.checkout.sessions.retrieve(
+        payment.sessionId
+      )
+
+      if (existingSession.status === "open" && existingSession.url) {
+        return {
+          orderId: order._id,
+          checkoutUrl: existingSession.url
+        }
+      }
     }
 
     const lineItems = order.items.map((item) => ({

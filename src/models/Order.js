@@ -147,6 +147,14 @@ const orderSchema = new mongoose.Schema(
     paymentExpiresAt: {
       type: Date,
       default: null
+    },
+    idempotencyKey: {
+      type: String,
+      trim: true
+    },
+    requestHash: {
+      type: String,
+      trim: true
     }
   },
   {
@@ -157,7 +165,15 @@ const orderSchema = new mongoose.Schema(
 orderSchema.index({ customerId: 1 })
 orderSchema.index({ "items.sellerId": 1, createdAt: -1 })
 orderSchema.index({ paymentExpiresAt: 1 }, { expireAfterSeconds: 0 })
-
+orderSchema.index(
+  { customerId: 1, idempotencyKey: 1 },
+  {
+    unique: true,
+    partialFilterExpression: {
+      idempotencyKey: { $type: "string" }
+    }
+  }
+)
 const Order = mongoose.model("Order", orderSchema)
 
 export default Order
