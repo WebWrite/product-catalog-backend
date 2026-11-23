@@ -1,19 +1,34 @@
 import { HTTP_STATUS } from "../constants/statusCodes.js"
 import OrderManager from "../managers/orderManager.js"
+import AppError from "../utils/AppError.js"
 
 class OrderController {
   static async createOrder(req, res) {
-    const order = await OrderManager.createCodOrder(
+    const idempotencyKey = req.get("Idempotency-Key")
+
+    if (!idempotencyKey || idempotencyKey.length > 255) {
+      throw new AppError(
+        "A valid Idempotency-Key header is required.",
+        HTTP_STATUS.BAD_REQUEST
+      )
+    }
+
+    const result = await OrderManager.createCodOrder(
       req.user.id,
       req.body,
-      req.requestId
+      req.requestId,
+      idempotencyKey
     )
 
-    return res.status(HTTP_STATUS.CREATED).json({
-      success: true,
-      message: "Order created successfully.",
-      data: { order }
-    })
+    return res
+      .status(result.replayed ? HTTP_STATUS.OK : HTTP_STATUS.CREATED)
+      .json({
+        success: true,
+        message: result.replayed
+          ? "Existing order returned successfully."
+          : "Order created successfully.",
+        data: { order: result.order }
+      })
   }
 
   static async getMyOrdersController(req, res) {
@@ -77,17 +92,34 @@ class OrderController {
   }
 
   static async placeOrderStripe(req, res) {
+    const idempotencyKey = req.get("Idempotency-Key")
+
+    if (!idempotencyKey || idempotencyKey.length > 255) {
+      throw new AppError(
+        "A valid Idempotency-Key header is required.",
+        HTTP_STATUS.BAD_REQUEST
+      )
+    }
+
     const result = await OrderManager.createStripeCheckout(
       req.user.id,
       req.body,
-      req.requestId
+      req.requestId,
+      idempotencyKey
     )
 
-    return res.status(HTTP_STATUS.CREATED).json({
-      success: true,
-      message: "Stripe Checkout Session created successfully.",
-      data: result
-    })
+    return res
+      .status(result.replayed ? HTTP_STATUS.OK : HTTP_STATUS.CREATED)
+      .json({
+        success: true,
+        message: result.replayed
+          ? "Existing Stripe checkout returned successfully."
+          : "Stripe Checkout Session created successfully.",
+        data: {
+          orderId: result.orderId,
+          checkoutUrl: result.checkoutUrl
+        }
+      })
   }
 
   static async retryStripePayment(req, res) {

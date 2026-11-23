@@ -84,6 +84,13 @@ class OrderRepository {
     }
   }
 
+  static findByIdempotencyKey(customerId, idempotencyKey) {
+    return Order.findOne({
+      customerId,
+      idempotencyKey
+    }).lean()
+  }
+
   static cancelPendingOrderItem(orderId, itemId, customerId, session) {
     return Order.findOneAndUpdate(
       {
