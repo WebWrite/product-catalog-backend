@@ -8,23 +8,43 @@ import mongoose from "mongoose"
 import ActivityLog from "../models/AcitivtyLog.js"
 
 class AdminRepository {
-  static async getActivityLogs(filter, skip, limit) {
+  static async getActivityLogs(filter = {}, skip = 0, limit = 10) {
     const escapeRegex = (value) => value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")
     const match = {}
 
-    if (filter.role) match.role = filter.role
-    if (filter.target) match.target = filter.target
+    if (typeof filter.role === "string" && filter.role) match.role = filter.role
+    if (typeof filter.target === "string" && filter.target)
+      match.target = filter.target
+
     if (filter.dateFrom || filter.dateTo) {
       match.createdAt = {}
       if (filter.dateFrom) match.createdAt.$gte = filter.dateFrom
       if (filter.dateTo) match.createdAt.$lte = filter.dateTo
     }
 
-    const pipeline = [{ $match: match }]
+    const searchTerm =
+      typeof filter.search === "string" ? filter.search.trim() : ""
 
-    if (filter.search) {
-      const searchRegex = new RegExp(escapeRegex(filter.search), "i")
-      pipeline.push(
+    if (searchTerm) {
+      const searchRegex = new RegExp(escapeRegex(searchTerm), "i")
+      const matchingUserIds = await User.distinct("_id", {
+        $or: [{ name: searchRegex }, { email: searchRegex }]
+      })
+
+      match.$or = [
+        { action: searchRegex },
+        { target: searchRegex },
+        { message: searchRegex },
+        { userId: { $in: matchingUserIds } }
+      ]
+    }
+
+    const [logs, total] = await Promise.all([
+      ActivityLog.aggregate([
+        { $match: match },
+        { $sort: { createdAt: -1, _id: -1 } },
+        { $skip: skip },
+        { $limit: limit },
         {
           $lookup: {
             from: User.collection.name,
@@ -40,71 +60,30 @@ class AdminRepository {
           }
         },
         {
-          $match: {
-            $or: [
-              { action: searchRegex },
-              { target: searchRegex },
-              { message: searchRegex },
-              { "user.name": searchRegex },
-              { "user.email": searchRegex }
-            ]
+          $project: {
+            _id: 1,
+            action: 1,
+            target: 1,
+            role: 1,
+            status: 1,
+            message: 1,
+            requestId: 1,
+            metadata: 1,
+            createdAt: 1,
+            updatedAt: 1,
+            user: {
+              _id: "$user._id",
+              name: "$user.name",
+              email: "$user.email",
+              role: "$user.role"
+            }
           }
         }
-      )
-    }
+      ]),
+      ActivityLog.countDocuments(match)
+    ])
 
-    pipeline.push(
-      { $sort: { createdAt: -1, _id: -1 } },
-      {
-        $facet: {
-          logs: [
-            { $skip: skip },
-            { $limit: limit },
-            {
-              $lookup: {
-                from: User.collection.name,
-                localField: "userId",
-                foreignField: "_id",
-                as: "user"
-              }
-            },
-            {
-              $unwind: {
-                path: "$user",
-                preserveNullAndEmptyArrays: true
-              }
-            },
-            {
-              $project: {
-                _id: 1,
-                action: 1,
-                target: 1,
-                role: 1,
-                status: 1,
-                message: 1,
-                requestId: 1,
-                metadata: 1,
-                createdAt: 1,
-                updatedAt: 1,
-                user: {
-                  _id: "$user._id",
-                  name: "$user.name",
-                  email: "$user.email",
-                  role: "$user.role"
-                }
-              }
-            }
-          ],
-          total: [{ $count: "count" }]
-        }
-      }
-    )
-
-    const [result] = await ActivityLog.aggregate(pipeline)
-    return {
-      logs: result?.logs || [],
-      total: result?.total[0]?.count || 0
-    }
+    return { logs, total }
   }
 
   static async sumGrossValue() {
@@ -246,7 +225,7 @@ class AdminRepository {
       ]),
       Order.aggregate([
         { $unwind: "$items" },
-        { $match: { "items.status": { $ne: "cancelled" } } },
+        { $match: { "items.status": { $in: ["confirmed", "delivered"] } } },
         {
           $group: {
             _id: null,
@@ -449,23 +428,53 @@ class AdminRepository {
       }
     )
   }
-
-  static async allSellers({ page = 1, limit = 10, status, category, search }) {
+  static async allSellers({
+    page = 1,
+    limit = 10,
+    status,
+    category,
+    search
+  } = {}) {
     page = Math.max(1, Number(page) || 1)
     limit = Math.min(100, Math.max(1, Number(limit) || 10))
-
     const skip = (page - 1) * limit
 
     const escapeRegex = (value) => value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")
 
-    const pipeline = [
-      {
-        $match: {
-          role: "seller",
-          ...(status === "active" || status === "inactive" ? { status } : {})
-        }
-      },
+    const searchTerm = typeof search === "string" ? search.trim() : ""
+    const categoryValue = typeof category === "string" ? category.trim() : ""
 
+    const match = {
+      role: "seller",
+      ...(status === "active" || status === "inactive" ? { status } : {})
+    }
+
+    if (categoryValue) {
+      const sellerIdsInCategory = await Product.distinct("sellerId", {
+        category: categoryValue,
+        isDeleted: { $ne: true }
+      })
+      match._id = { $in: sellerIdsInCategory }
+    }
+
+    if (searchTerm) {
+      const regex = new RegExp(escapeRegex(searchTerm), "i")
+      const profileUserIds = await SellerProfile.distinct("userId", {
+        storeName: regex
+      })
+
+      match.$or = [
+        { name: regex },
+        { email: regex },
+        { _id: { $in: profileUserIds } }
+      ]
+    }
+
+    const pagePipeline = [
+      { $match: match },
+      { $sort: { createdAt: -1, _id: -1 } },
+      { $skip: skip },
+      { $limit: limit },
       {
         $lookup: {
           from: SellerProfile.collection.name,
@@ -479,107 +488,49 @@ class AdminRepository {
           path: "$profile",
           preserveNullAndEmptyArrays: true
         }
-      }
-    ]
-
-    if (search?.trim()) {
-      const regex = new RegExp(escapeRegex(search.trim()), "i")
-
-      pipeline.push({
-        $match: {
-          $or: [
-            { name: regex },
-            { email: regex },
-            { "profile.storeName": regex }
-          ]
-        }
-      })
-    }
-
-    if (category) {
-      pipeline.push({
+      },
+      {
         $lookup: {
           from: Product.collection.name,
           let: { sellerId: "$_id" },
           pipeline: [
             {
               $match: {
-                $expr: {
-                  $eq: ["$sellerId", "$$sellerId"]
-                },
-                category,
+                $expr: { $eq: ["$sellerId", "$$sellerId"] },
                 isDeleted: { $ne: true }
               }
             },
-            { $limit: 1 }
+            { $count: "count" }
           ],
-          as: "matchingProducts"
+          as: "productStats"
         }
-      })
-
-      pipeline.push({
-        $match: {
-          "matchingProducts.0": { $exists: true }
-        }
-      })
-    }
-
-    pipeline.push({
-      $facet: {
-        total: [{ $count: "count" }],
-
-        sellers: [
-          { $sort: { createdAt: -1 } },
-          { $skip: skip },
-          { $limit: limit },
-
-          {
-            $lookup: {
-              from: Product.collection.name,
-              let: { sellerId: "$_id" },
-              pipeline: [
-                {
-                  $match: {
-                    $expr: {
-                      $eq: ["$sellerId", "$$sellerId"]
-                    },
-                    isDeleted: { $ne: true }
-                  }
-                },
-                { $count: "count" }
-              ],
-              as: "productStats"
-            }
-          },
-          {
-            $addFields: {
-              productCount: {
-                $ifNull: [{ $arrayElemAt: ["$productStats.count", 0] }, 0]
-              }
-            }
-          },
-          {
-            $project: {
-              name: 1,
-              email: 1,
-              status: 1,
-              createdAt: 1,
-              profile: 1,
-              productCount: 1
-            }
+      },
+      {
+        $addFields: {
+          productCount: {
+            $ifNull: [{ $arrayElemAt: ["$productStats.count", 0] }, 0]
           }
-        ]
+        }
+      },
+      {
+        $project: {
+          name: 1,
+          email: 1,
+          status: 1,
+          createdAt: 1,
+          profile: 1,
+          productCount: 1
+        }
       }
-    })
+    ]
 
-    const [result] = await User.aggregate(pipeline)
-
-    const users = result.sellers
-    const totalSellers = result.total[0]?.count || 0
+    const [users, totalSellers] = await Promise.all([
+      User.aggregate(pagePipeline),
+      User.countDocuments(match)
+    ])
 
     const now = new Date()
     const monthStart = new Date(now.getFullYear(), now.getMonth(), 1)
-
     const sellerIds = users.map((user) => user._id)
 
     const monthlyStats = sellerIds.length
@@ -594,35 +545,31 @@ class AdminRepository {
           {
             $match: {
               "items.sellerId": { $in: sellerIds },
-              "items.status": { $ne: "cancelled" }
+              "items.status": { $in: ["confirmed", "delivered"] }
             }
           },
           {
             $group: {
               _id: "$items.sellerId",
-              monthlySales: {
-                $sum: "$items.itemTotal"
-              },
-              orders: {
-                $addToSet: "$_id"
-              }
+              monthlySales: { $sum: "$items.itemTotal" },
+              orders: { $addToSet: "$_id" }
             }
           },
           {
             $project: {
               monthlySales: 1,
-              monthlyOrders: {
-                $size: "$orders"
-              }
+              monthlyOrders: { $size: "$orders" }
             }
           }
         ])
       : []
 
+    const statsBySeller = new Map(
+      monthlyStats.map((item) => [item._id.toString(), item])
+    )
+
     const sellers = users.map((user) => {
-      const stats = monthlyStats.find(
-        (item) => item._id.toString() === user._id.toString()
-      )
+      const stats = statsBySeller.get(user._id.toString())
 
       return {
         userId: user._id,
@@ -711,60 +658,63 @@ class AdminRepository {
     return await this.findOneSeller(id)
   }
 
-  static async findCustomers(options) {
+  static async findCustomers(options = {}) {
     const page = Math.max(1, Number(options.page) || 1)
     const limit = Math.min(100, Math.max(1, Number(options.limit) || 10))
+    const skip = (page - 1) * limit
+
     const filter = { role: "customer" }
 
-    if (options.status) {
+    if (options.status && typeof options.status === "string") {
       filter.status = options.status
     }
 
-    if (options.search?.trim()) {
-      const search = options.search
-        .trim()
-        .replace(/[.*+?^${}()|[\]\\]/g, "\\$&")
-      const regex = new RegExp(search, "i")
+    const searchTerm =
+      typeof options.search === "string" ? options.search.trim() : ""
+
+    if (searchTerm) {
+      const escaped = searchTerm.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")
+      const regex = new RegExp(escaped, "i")
       filter.$or = [{ name: regex }, { email: regex }]
     }
 
-    const customers = await User.aggregate([
-      { $match: filter },
-      {
-        $lookup: {
-          from: "orders",
-          localField: "_id",
-          foreignField: "customerId",
-          let: { customerId: "$_id" },
-          pipeline: [
-            { $unwind: "$items" },
-            { $match: { "items.status": { $ne: "cancelled" } } },
-            {
-              $group: {
-                _id: "$_id",
-                total: { $sum: "$items.itemTotal" }
+    const [customers, totalCustomers] = await Promise.all([
+      User.aggregate([
+        { $match: filter },
+        { $sort: { name: 1, _id: 1 } },
+        { $skip: skip },
+        { $limit: limit },
+        {
+          $lookup: {
+            from: Order.collection.name,
+            localField: "_id",
+            foreignField: "customerId",
+            pipeline: [
+              { $unwind: "$items" },
+              { $match: { "items.status": { $ne: "cancelled" } } },
+              {
+                $group: {
+                  _id: "$_id",
+                  total: { $sum: "$items.itemTotal" }
+                }
               }
-            }
-          ],
-          as: "orders"
+            ],
+            as: "orders"
+          }
+        },
+        {
+          $project: {
+            _id: 1,
+            name: 1,
+            email: 1,
+            status: 1,
+            totalOrders: { $size: "$orders" },
+            lifetimeSpent: { $sum: "$orders.total" }
+          }
         }
-      },
-      {
-        $project: {
-          _id: 1,
-          name: 1,
-          email: 1,
-          status: 1,
-          totalOrders: { $size: "$orders" },
-          lifetimeSpent: { $sum: "$orders.total" }
-        }
-      },
-      { $sort: { name: 1 } },
-      { $skip: (page - 1) * limit },
-      { $limit: limit }
+      ]),
+      User.countDocuments(filter)
     ])
-
-    const totalCustomers = await User.countDocuments(filter)
 
     return {
       customers,
