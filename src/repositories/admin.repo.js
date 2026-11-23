@@ -110,7 +110,7 @@ class AdminRepository {
   static async sumGrossValue() {
     let result = await Order.aggregate([
       { $unwind: "$items" },
-      { $match: { "items.status": { $ne: "cancelled" } } },
+      { $match: { "items.status": { $in: ["confirmed", "delivered"] } } },
       {
         $group: {
           _id: null,

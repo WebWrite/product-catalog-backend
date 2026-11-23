@@ -96,6 +96,7 @@ const productSchema = new mongoose.Schema(
 
 productSchema.index({ sellerId: 1 })
 productSchema.index({ isDeleted: 1 })
+productSchema.index({ sellerId: 1, isDeleted: 1, category: 1 })
 
 const excludeDeletedProducts = function () {
   if (this.getFilter().isDeleted === undefined) {
