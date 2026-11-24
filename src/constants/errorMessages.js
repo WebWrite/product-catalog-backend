@@ -48,5 +48,7 @@ export const ERROR_MESSAGES = Object.freeze({
   //chat
   CHAT_NOT_FOUND: "Conversation not found.",
   CHAT_CREATE_FAILED: "Unable to create conversation.",
-  CHAT_JOIN_FAILED: "Unable to join conversation."
+  CHAT_JOIN_FAILED: "Unable to join conversation.",
+
+  FETCH_LIMIT: "You can request at most 50 products at once."
 })

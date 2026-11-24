@@ -96,6 +96,13 @@ export const findProductById = async (productId) => {
     .lean()
 }
 
+export const findProductByIds = async (ids) => {
+  return Product.find({ _id: { $in: ids } })
+    .populate("sellerId", "name")
+    .populate("seller", "storeName storeType -_id")
+    .lean()
+}
+
 export const deleteProductByOwner = async (productId, sellerId) => {
   return Product.findOneAndUpdate(
     {

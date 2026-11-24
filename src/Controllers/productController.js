@@ -7,6 +7,7 @@ import {
   deleteProductManager,
   getAllProductsManager,
   getProductByIdManager,
+  getProductsByIdsManager,
   getSellerProductsManager,
   getSellerProductStatsManager,
   updateProductManager,
@@ -222,5 +223,13 @@ export const getProductById = async (req, res) => {
     success: true,
     message: SUCCESS_MESSAGES.PRODUCT_FETCHED,
     product
+  })
+}
+export const getProductByIds = async (req, res) => {
+  const products = await getProductsByIdsManager(req.query.ids)
+  return res.status(HTTP_STATUS.OK).json({
+    success: true,
+    message: SUCCESS_MESSAGES.PRODUCT_FETCHED,
+    products
   })
 }

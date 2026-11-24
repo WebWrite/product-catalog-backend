@@ -13,6 +13,7 @@ import {
   deleteProduct,
   getAllProducts,
   getProductById,
+  getProductByIds,
   getSellerProducts,
   getSellerProductStats,
   updateProduct,
@@ -99,6 +100,7 @@ router.patch(
 )
 
 router.get("/", authLimiter(1, 30), asyncHandler(getAllProducts))
+router.get("/products/batch", authLimiter(1, 50), asyncHandler(getProductByIds))
 router.get(
   "/:id",
   authLimiter(1, 50),
