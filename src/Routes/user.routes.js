@@ -8,6 +8,7 @@ import { sanitizeFields } from "../middlewares/sanitizeFields.middleware.js"
 import authLimiter from "../middlewares/rateLimiting.js"
 
 const router = Router()
+
 router.get(
   "/me",
   authLimiter(1, 20),
