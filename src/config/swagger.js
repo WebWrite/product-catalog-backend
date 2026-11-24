@@ -13,6 +13,6 @@ const swaggerOptions = {
       }
     ]
   },
-  apis: ["./Routes/*.js", "./src/Routes/*.js"]
+  apis: ["./swagger/*.js", "./src/swagger/*.js"]
 }
 export default swaggerOptions

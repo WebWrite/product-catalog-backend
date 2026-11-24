@@ -8,18 +8,6 @@ import authLimiter from "../middlewares/rateLimiting.js"
 
 const router = Router()
 
-/**
- * @swagger
- * /api/v1/chat/conversations:
- *   get:
- *     tags: [Chat]
- *     summary: Get the user's conversations
- *     security:
- *       - accessToken: []
- *     responses:
- *       200:
- *         description: User conversations
- */
 router.get(
   "/conversations",
   authLimiter(1, 60),
@@ -27,18 +15,6 @@ router.get(
   asyncHandler(ChatController.getConversations)
 )
 
-/**
- * @swagger
- * /api/v1/chat/unread-count:
- *   get:
- *     tags: [Chat]
- *     summary: Get the unread chat count
- *     security:
- *       - accessToken: []
- *     responses:
- *       200:
- *         description: Unread chat count
- */
 router.get(
   "/unread-count",
   authLimiter(1, 60),
@@ -46,29 +22,6 @@ router.get(
   asyncHandler(ChatController.getTotalUnreadCount)
 )
 
-/**
- * @swagger
- * /api/v1/chat/upload:
- *   post:
- *     tags: [Chat]
- *     summary: Upload a chat attachment
- *     security:
- *       - accessToken: []
- *     requestBody:
- *       required: true
- *       content:
- *         multipart/form-data:
- *           schema:
- *             type: object
- *             required: [image]
- *             properties:
- *               image:
- *                 type: string
- *                 format: binary
- *     responses:
- *       200:
- *         description: Attachment uploaded successfully
- */
 router.post(
   "/upload",
   authLimiter(1, 30),
