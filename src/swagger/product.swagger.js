@@ -144,3 +144,15 @@
  *     responses:
  *       200: { description: Product details }
  */
+
+/**
+ * @swagger
+ * /api/v1/products/batch:
+ *   get:
+ *     tags: [Products]
+ *     summary: Get multiple products by IDs
+ *     parameters:
+ *       - { in: query, name: ids, required: true, schema: { type: string }, description: Comma-separated product ObjectIds (max 50) }
+ *     responses:
+ *       200: { description: Matching products }
+ */

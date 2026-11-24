@@ -16,12 +16,14 @@ import {
   findProductById,
   createStockHistory,
   getSellerProductStats,
-  countSellerProducts
+  countSellerProducts,
+  findProductByIds
 } from "../repositories/product.repo.js"
 import AppError from "../utils/AppError.js"
 import { HTTP_STATUS } from "../constants/statusCodes.js"
 import { ERROR_MESSAGES } from "../constants/errorMessages.js"
 import logger from "../config/logger.js"
+import mongoose from "mongoose"
 
 export const createProduct = async (data, sellerId, imageBuffer) => {
   const image = await uploadProductImage(imageBuffer)
@@ -246,4 +248,32 @@ export const getProductByIdManager = async (productId) => {
   }
 
   return product
+}
+
+export const getProductsByIdsManager = async (ids) => {
+  const Pids = [
+    ...new Set(
+      (Array.isArray(ids) ? ids : String(ids ?? "").split(","))
+        .map((id) => String(id).trim())
+        .filter(Boolean)
+    )
+  ]
+
+  if (Pids.length === 0) {
+    throw new AppError(ERROR_MESSAGES.INVALID_REQUEST, HTTP_STATUS.BAD_REQUEST)
+  }
+
+  if (Pids.length > 50) {
+    throw new AppError(ERROR_MESSAGES.FETCH_LIMIT, HTTP_STATUS.BAD_REQUEST)
+  }
+
+  const validIds = Pids.filter((id) => mongoose.isValidObjectId(id))
+
+  if (validIds.length === 0) {
+    throw new AppError(
+      ERROR_MESSAGES.INVALID_OBJECT_ID,
+      HTTP_STATUS.BAD_REQUEST
+    )
+  }
+  return findProductByIds(validIds)
 }
