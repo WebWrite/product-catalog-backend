@@ -168,56 +168,103 @@ export const findProductStockByOwner = async (productId, sellerId) =>
   Product.findOne({ _id: productId, sellerId }).select("_id stock").lean()
 
 export const findAllProducts = async (options) => {
-  const filter = {
-    status: "active"
-  }
-  if (options.minPrice != null || options.maxPrice != null) {
-    filter.price = {}
-    if (options.minPrice != null) {
-      filter.price.$gte = Number(options.minPrice)
-    }
-
-    if (options.maxPrice != null) {
-      filter.price.$lte = Number(options.maxPrice)
-    }
-  }
-
-  if (options.search?.trim()) {
-    filter.name = {
-      $regex: options.search.trim(),
-      $options: "i"
-    }
-  }
-  if (options.category) {
-    filter.category = options.category
-  }
-
-  if (options.inStock === true || options.inStock === "true") {
-    filter.stock = {
-      $gte: 1
-    }
-  }
-
-  const sortOptions = {
-    "high-to-low": { price: -1 },
-    "low-to-high": { price: 1 }
-  }
-
-  const sort = sortOptions[options.sortBy] || { createdAt: -1 }
+  const search = options.search?.trim()
+  const hasSearch = Boolean(search && search.length >= 2)
 
   const currentPage = Math.max(1, Number(options.page) || 1)
   const pageLimit = Math.max(1, Number(options.limit) || 15)
   const skip = (currentPage - 1) * pageLimit
 
-  const [products, total] = await Promise.all([
-    Product.find(filter)
-      .sort(sort)
-      .skip(skip)
-      .limit(pageLimit)
-      .populate("sellerId", "name")
-      .populate("seller", "storeName storeType -_id")
-      .lean(),
-    Product.countDocuments(filter)
+  const sortOptions = {
+    "high-to-low": { price: -1 },
+    "low-to-high": { price: 1 }
+  }
+  const sort = sortOptions[options.sortBy] || { createdAt: -1 }
+
+  if (!hasSearch) {
+    const filter = { status: "active", isDeleted: false }
+
+    if (options.category) filter.category = options.category
+
+    if (options.minPrice != null || options.maxPrice != null) {
+      filter.price = {}
+      if (options.minPrice != null) filter.price.$gte = Number(options.minPrice)
+      if (options.maxPrice != null) filter.price.$lte = Number(options.maxPrice)
+    }
+
+    if (options.inStock === true || options.inStock === "true") {
+      filter.stock = { $gte: 1 }
+    }
+
+    const [products, total] = await Promise.all([
+      Product.find(filter)
+        .select("-description")
+        .sort(sort)
+        .skip(skip)
+        .limit(pageLimit)
+        .populate("sellerId", "name")
+        .populate("seller", "storeName storeType -_id")
+        .lean(),
+      Product.countDocuments(filter)
+    ])
+
+    return {
+      products,
+      total,
+      page: currentPage,
+      limit: pageLimit,
+      totalPages: Math.ceil(total / pageLimit)
+    }
+  }
+
+  const filters = [
+    { equals: { path: "status", value: "active" } },
+    { equals: { path: "isDeleted", value: false } }
+  ]
+
+  if (options.category) {
+    filters.push({ equals: { path: "category", value: options.category } })
+  }
+
+  if (options.minPrice != null || options.maxPrice != null) {
+    const range = { path: "price" }
+    if (options.minPrice != null) range.gte = Number(options.minPrice)
+    if (options.maxPrice != null) range.lte = Number(options.maxPrice)
+    filters.push({ range })
+  }
+
+  if (options.inStock === true || options.inStock === "true") {
+    filters.push({ range: { path: "stock", gte: 1 } })
+  }
+
+  const compound = {
+    filter: filters,
+    must: [{ autocomplete: { query: search, path: "name" } }]
+  }
+
+  const [products, meta] = await Promise.all([
+    Product.aggregate([
+      { $search: { index: "default", compound, sort } },
+      { $skip: skip },
+      { $limit: pageLimit },
+      { $project: { description: 0 } }
+    ]),
+    Product.aggregate([
+      {
+        $searchMeta: {
+          index: "default",
+          compound,
+          count: { type: "lowerBound" }
+        }
+      }
+    ])
+  ])
+
+  const total = meta[0]?.count?.lowerBound ?? 0
+
+  await Product.populate(products, [
+    { path: "sellerId", select: "name" },
+    { path: "seller", select: "storeName storeType -_id" }
   ])
 
   return {

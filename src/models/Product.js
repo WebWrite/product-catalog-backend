@@ -95,9 +95,11 @@ const productSchema = new mongoose.Schema(
 )
 
 productSchema.index({ sellerId: 1 })
-productSchema.index({ name: 1 })
-productSchema.index({ isDeleted: 1 })
 productSchema.index({ sellerId: 1, isDeleted: 1, category: 1 })
+productSchema.index({ isDeleted: 1, status: 1, price: 1 })
+productSchema.index({ isDeleted: 1, status: 1, createdAt: -1 })
+productSchema.index({ isDeleted: 1, status: 1, category: 1, price: 1 })
+productSchema.index({ isDeleted: 1, status: 1, category: 1, createdAt: -1 })
 
 const excludeDeletedProducts = function () {
   if (this.getFilter().isDeleted === undefined) {
@@ -109,6 +111,9 @@ productSchema.pre(/^find/, excludeDeletedProducts)
 productSchema.pre("countDocuments", excludeDeletedProducts)
 productSchema.pre("distinct", excludeDeletedProducts)
 productSchema.pre("aggregate", function () {
+  const first = this.pipeline()[0]
+  if (first && (first.$search || first.$searchMeta)) return
+
   this.pipeline().unshift({ $match: { isDeleted: { $ne: true } } })
 })
 
