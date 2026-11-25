@@ -7,15 +7,70 @@ export const createProduct = async (data) => {
   return Product.create(data)
 }
 
-export const findProductsBySellerId = (sellerId, filter, sort, skip, limit) => {
-  return Product.find({ sellerId, ...filter })
+export const findProductsBySellerId = (sellerId, filter, sort, skip, limit) =>
+  Product.find({ sellerId, isDeleted: false, ...filter })
     .sort(sort)
     .skip(skip)
     .limit(limit)
     .lean()
-}
-export const countSellerProducts = (sellerId, filter) => {
-  return Product.countDocuments({ sellerId, ...filter })
+
+export const countSellerProducts = (sellerId, filter) =>
+  Product.countDocuments({ sellerId, isDeleted: false, ...filter })
+
+export const searchSellerProducts = async (
+  sellerId,
+  { search, category, stockStatus, sortBy, skip, limit }
+) => {
+  const filters = [
+    {
+      equals: { path: "sellerId", value: new mongoose.Types.ObjectId(sellerId) }
+    },
+    { equals: { path: "isDeleted", value: false } }
+  ]
+
+  if (category) filters.push({ equals: { path: "category", value: category } })
+
+  if (stockStatus === "inStock") {
+    filters.push({ range: { path: "stock", gt: 10 } })
+  } else if (stockStatus === "lowStock") {
+    filters.push({ range: { path: "stock", gt: 0, lte: 10 } })
+  } else if (stockStatus === "deadStock") {
+    filters.push({ range: { path: "stock", gte: 0, lte: 0 } })
+  }
+
+  const compound = {
+    filter: filters,
+    must: [{ autocomplete: { query: search, path: "name" } }]
+  }
+
+  const sortMap = {
+    newest: { createdAt: -1 },
+    "price-low": { price: 1 },
+    "price-high": { price: -1 },
+    "a-z": { name: 1 },
+    "z-a": { name: -1 }
+  }
+  const sort = sortMap[sortBy] || sortMap.newest
+
+  const [products, meta] = await Promise.all([
+    Product.aggregate([
+      { $search: { index: "default", compound, sort } },
+      { $skip: skip },
+      { $limit: limit },
+      { $project: { description: 0 } }
+    ]),
+    Product.aggregate([
+      {
+        $searchMeta: {
+          index: "default",
+          compound,
+          count: { type: "total" }
+        }
+      }
+    ])
+  ])
+
+  return { products, total: meta[0]?.count?.total ?? 0 }
 }
 export const getSellerProductStats = async (sellerId) => {
   const [totalProducts, activeProducts, lowStockProducts, deadStockProducts] =
