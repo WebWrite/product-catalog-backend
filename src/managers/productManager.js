@@ -17,7 +17,8 @@ import {
   createStockHistory,
   getSellerProductStats,
   countSellerProducts,
-  findProductByIds
+  findProductByIds,
+  searchSellerProducts
 } from "../repositories/product.repo.js"
 import AppError from "../utils/AppError.js"
 import { HTTP_STATUS } from "../constants/statusCodes.js"
@@ -59,12 +60,7 @@ export const getSellerProductsManager = async (sellerId, options) => {
   } = options
 
   const filter = {}
-
   if (category) filter.category = category
-
-  if (search?.trim()) {
-    filter.name = { $regex: search.trim(), $options: "i" }
-  }
 
   if (stockStatus === "inStock") {
     filter.stock = { $gt: 10 }
@@ -74,6 +70,23 @@ export const getSellerProductsManager = async (sellerId, options) => {
     filter.stock = 0
   }
 
+  const pageNum = Math.max(1, Number(page) || 1)
+  const limitNum = Math.max(1, Number(limit) || 10)
+  const skip = (pageNum - 1) * limitNum
+  const term = search?.trim()
+
+  if (term && term.length >= 2) {
+    const { products, total } = await searchSellerProducts(sellerId, {
+      search: term,
+      category,
+      stockStatus,
+      sortBy,
+      skip,
+      limit: limitNum
+    })
+    return { products, total, totalPages: Math.ceil(total / limitNum) }
+  }
+
   const sortOptions = {
     newest: { _id: -1 },
     "price-low": { price: 1, _id: 1 },
@@ -81,20 +94,14 @@ export const getSellerProductsManager = async (sellerId, options) => {
     "a-z": { name: 1, _id: 1 },
     "z-a": { name: -1, _id: -1 }
   }
-
   const sort = sortOptions[sortBy] || sortOptions.newest
-  const skip = (page - 1) * limit
 
   const [products, total] = await Promise.all([
-    findProductsBySellerId(sellerId, filter, sort, skip, limit),
+    findProductsBySellerId(sellerId, filter, sort, skip, limitNum),
     countSellerProducts(sellerId, filter)
   ])
 
-  return {
-    products,
-    total,
-    totalPages: Math.ceil(total / limit)
-  }
+  return { products, total, totalPages: Math.ceil(total / limitNum) }
 }
 
 export const deleteProductManager = async (productId, ownerId) => {
