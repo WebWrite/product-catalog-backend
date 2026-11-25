@@ -95,6 +95,7 @@ const productSchema = new mongoose.Schema(
 )
 
 productSchema.index({ sellerId: 1 })
+productSchema.index({ name: 1 })
 productSchema.index({ isDeleted: 1 })
 productSchema.index({ sellerId: 1, isDeleted: 1, category: 1 })
 
