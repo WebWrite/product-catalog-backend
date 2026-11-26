@@ -162,8 +162,58 @@ const orderSchema = new mongoose.Schema(
   }
 )
 
-orderSchema.index({ customerId: 1 })
-orderSchema.index({ "items.sellerId": 1, createdAt: -1 })
+orderSchema.index(
+  { customerId: 1, createdAt: -1, _id: -1 },
+  { name: "customer_orders_created_at" }
+)
+orderSchema.index(
+  { customerId: 1, paymentMethod: 1, createdAt: -1, _id: -1 },
+  { name: "customer_orders_method_created_at" }
+)
+orderSchema.index(
+  { customerId: 1, paymentStatus: 1, createdAt: -1, _id: -1 },
+  { name: "customer_orders_status_created_at" }
+)
+orderSchema.index(
+  {
+    customerId: 1,
+    paymentMethod: 1,
+    paymentStatus: 1,
+    createdAt: -1,
+    _id: -1
+  },
+  { name: "customer_orders_method_status_created_at" }
+)
+orderSchema.index(
+  { "items.sellerId": 1, createdAt: -1, _id: -1 },
+  { name: "seller_orders_created_at" }
+)
+orderSchema.index(
+  { "items.sellerId": 1, paymentMethod: 1, createdAt: -1, _id: -1 },
+  { name: "seller_orders_method_created_at" }
+)
+orderSchema.index(
+  { "items.sellerId": 1, paymentStatus: 1, createdAt: -1, _id: -1 },
+  { name: "seller_orders_status_created_at" }
+)
+orderSchema.index(
+  {
+    "items.sellerId": 1,
+    paymentMethod: 1,
+    paymentStatus: 1,
+    createdAt: -1,
+    _id: -1
+  },
+  { name: "seller_orders_method_status_created_at" }
+)
+orderSchema.index(
+  { createdAt: -1, _id: -1 },
+  { name: "admin_orders_created_at" }
+)
+orderSchema.index(
+  { paymentMethod: 1, createdAt: -1, _id: -1 },
+  { name: "admin_orders_method_created_at" }
+)
 orderSchema.index({ paymentExpiresAt: 1 }, { expireAfterSeconds: 0 })
 orderSchema.index(
   { customerId: 1, idempotencyKey: 1 },
