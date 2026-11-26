@@ -22,6 +22,9 @@ const sellerProfile = new Schema({
     required: true
   }
 })
-
+sellerProfile.index(
+  { userId: 1 },
+  { unique: true, name: "seller_profile_user" }
+)
 const SellerProfile = model("SellerProfile", sellerProfile)
 export default SellerProfile
