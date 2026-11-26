@@ -6,6 +6,23 @@ import StockHistory from "../models/StockHistory.js"
 import AppError from "../utils/AppError.js"
 import User from "../models/User.js"
 import SellerProfile from "../models/seller.profile.model.js"
+
+const ORDER_SUBSTRING_SEARCH_INDEX = "customer_order_substring_search"
+const escapeRegex = (value) => value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")
+
+const ORDER_LIST_FIELDS =
+  "_id customerId items shippingAddress subtotal shippingCost total paymentMethod paymentStatus createdAt"
+
+const populateOrderList = (query) =>
+  query
+    .populate({ path: "customerId", select: "name email" })
+    .populate({ path: "items.productId", select: "image.url" })
+    .populate({
+      path: "items.sellerId",
+      select: "name email -_id",
+      populate: { path: "sellerProfile", select: "storeName -_id" }
+    })
+
 class OrderRepository {
   static findProductsForOrder(productIds, session) {
     return Product.find({ _id: { $in: productIds } })
@@ -25,62 +42,158 @@ class OrderRepository {
     return Order.create([data], { session })
   }
 
+  static buildOrderPagination(page, limit, total) {
+    return {
+      page,
+      limit,
+      total,
+      totalPages: Math.ceil(total / limit)
+    }
+  }
+
   static async findOrdersByCustomerId(customerId, filters) {
     const { page, limit, search, paymentMethod, paymentStatus } = filters
+    const currentPage = Math.max(1, Number(page) || 1)
+    const pageSize = Math.min(50, Math.max(1, Number(limit) || 10))
+    const skip = (currentPage - 1) * pageSize
+    const term = typeof search === "string" ? search.trim() : ""
+
+    if (term.length >= 2) {
+      return this.findSearchedOrdersByCustomerId(customerId, {
+        term,
+        paymentMethod,
+        paymentStatus,
+        page: currentPage,
+        limit: pageSize,
+        skip
+      })
+    }
 
     const query = { customerId }
-
     if (paymentMethod) query.paymentMethod = paymentMethod
     if (paymentStatus) query.paymentStatus = paymentStatus
 
-    if (search) {
-      const regex = new RegExp(search, "i")
-
-      const sellers = await SellerProfile.find({
-        storeName: regex
-      })
-        .select("userId")
-        .lean()
-
-      const sellerIds = sellers.map((seller) => seller.userId)
-
-      query.$or = [
-        { "items.name": regex },
-        { "items.sellerId": { $in: sellerIds } }
-      ]
-    }
-
     const [orders, total] = await Promise.all([
-      Order.find(query)
-        .sort({ createdAt: -1, _id: -1 })
-        .skip((page - 1) * limit)
-        .limit(limit)
-        .select(
-          "_id customerId items shippingAddress subtotal shippingCost total paymentMethod paymentStatus createdAt"
-        )
-        .populate({ path: "customerId", select: "name email" })
-        .populate({ path: "items.productId", select: "image.url" })
-        .populate({
-          path: "items.sellerId",
-          select: "name email -_id",
-          populate: {
-            path: "sellerProfile",
-            select: "storeName -_id"
-          }
-        })
-        .lean(),
-
+      populateOrderList(
+        Order.find(query)
+          .sort({ createdAt: -1, _id: -1 })
+          .skip(skip)
+          .limit(pageSize)
+          .select(ORDER_LIST_FIELDS)
+      ).lean(),
       Order.countDocuments(query)
     ])
 
     return {
       orders,
-      pagination: {
-        page,
-        limit,
-        total,
-        totalPages: Math.ceil(total / limit)
+      pagination: this.buildOrderPagination(currentPage, pageSize, total)
+    }
+  }
+
+  static async findSearchedOrdersByCustomerId(customerId, filters) {
+    const { term, paymentMethod, paymentStatus, page, limit, skip } = filters
+    const searchTerm = term.slice(0, 15).toLowerCase()
+
+    const sellers = await SellerProfile.find({
+      storeName: new RegExp(escapeRegex(term), "i")
+    })
+      .select("userId")
+      .limit(200)
+      .lean()
+
+    const should = [
+      {
+        embeddedDocument: {
+          path: "items",
+          operator: {
+            autocomplete: {
+              path: "items.name",
+              query: searchTerm,
+              tokenOrder: "any"
+            }
+          }
+        }
       }
+    ]
+
+    if (sellers.length > 0) {
+      should.push({
+        embeddedDocument: {
+          path: "items",
+          operator: {
+            in: {
+              path: "items.sellerId",
+              value: sellers.map((seller) => seller.userId)
+            }
+          }
+        }
+      })
+    }
+
+    const filter = [
+      {
+        equals: {
+          path: "customerId",
+          value: new mongoose.Types.ObjectId(customerId)
+        }
+      }
+    ]
+
+    if (paymentMethod) {
+      filter.push({ equals: { path: "paymentMethod", value: paymentMethod } })
+    }
+    if (paymentStatus) {
+      filter.push({ equals: { path: "paymentStatus", value: paymentStatus } })
+    }
+
+    const compound = { filter, should, minimumShouldMatch: 1 }
+    const [pageDocs, metaDocs] = await Promise.all([
+      Order.aggregate([
+        {
+          $search: {
+            index: ORDER_SUBSTRING_SEARCH_INDEX,
+            compound,
+            sort: { createdAt: -1, _id: -1 }
+          }
+        },
+        { $skip: skip },
+        { $limit: limit },
+        { $project: { _id: 1 } }
+      ]),
+      Order.aggregate([
+        {
+          $searchMeta: {
+            index: ORDER_SUBSTRING_SEARCH_INDEX,
+            compound,
+            count: { type: "total" }
+          }
+        }
+      ])
+    ])
+
+    const total = Number(metaDocs[0]?.count?.total ?? 0)
+    const orderIds = pageDocs.map((order) => order._id)
+
+    if (orderIds.length === 0) {
+      return {
+        orders: [],
+        pagination: this.buildOrderPagination(page, limit, total)
+      }
+    }
+
+    const populatedOrders = await populateOrderList(
+      Order.find({ _id: { $in: orderIds } }).select(ORDER_LIST_FIELDS)
+    ).lean()
+    const ordersById = new Map(
+      populatedOrders.map((order) => [order._id.toString(), order])
+    )
+    const orders = orderIds
+      .map((id) => ordersById.get(id.toString()))
+      .filter(Boolean)
+
+    return {
+      orders,
+      pagination: this.buildOrderPagination(page, limit, total)
     }
   }
 

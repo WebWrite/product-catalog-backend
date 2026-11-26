@@ -28,7 +28,7 @@ export default class AdminOrdersRepository {
     const [orders, total] = await Promise.all([
       Order.find(match)
         .populate("customerId", "name email")
-        .sort({ createdAt: -1 })
+        .sort({ createdAt: -1, _id: -1 })
         .skip(skip)
         .limit(limit),
       Order.countDocuments(match)
