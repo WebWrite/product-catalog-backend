@@ -61,6 +61,20 @@ userSchema.index({ email: 1 }, { unique: true })
 
 userSchema.index({ role: 1, status: 1, createdAt: -1 })
 
+userSchema.index({ role: 1, name: 1, _id: 1 }, { name: "role_name_id" })
+userSchema.index(
+  { role: 1, status: 1, name: 1, _id: 1 },
+  { name: "role_status_name_id" }
+)
+
+userSchema.index(
+  { role: 1, createdAt: -1, _id: -1 },
+  { name: "role_created_id" }
+)
+userSchema.index(
+  { role: 1, status: 1, createdAt: -1, _id: -1 },
+  { name: "role_status_created_id" }
+)
 const User = mongoose.model("User", userSchema)
 
 export default User
