@@ -3,7 +3,9 @@ export const SUCCESS_MESSAGES = Object.freeze({
   OPERATION_SUCCESS: "Operation completed successfully.",
   SERVER_IS_RUNNING: "Server is running",
   DATABASE_CONNECTED: "Database connected",
+  DATABASE_DISCONNECT: "MongoDB disconnected successfully",
   REDIS_CONNECTED: "Redis connected",
+  REDIS_DISCONNECT: "Redis disconnected successfully",
   // Authentication & User
   REFRESH_TOKEN_UPDATED: "Refresh token updated",
   USER_REGISTERED: "User registered successfully.",
