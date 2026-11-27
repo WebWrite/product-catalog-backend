@@ -40,8 +40,6 @@ const stockHistorySchema = new mongoose.Schema(
   }
 )
 
-stockHistorySchema.index({ productId: 1 })
-
 const StockHistory = mongoose.model("StockHistory", stockHistorySchema)
 
 export default StockHistory

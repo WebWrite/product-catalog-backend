@@ -48,10 +48,23 @@ const activityLogSchema = new mongoose.Schema(
   }
 )
 
-activityLogSchema.index({ userId: 1, createdAt: -1 })
-activityLogSchema.index({ target: 1, createdAt: -1 })
-activityLogSchema.index({ createdAt: -1 })
-activityLogSchema.index({ role: 1, createdAt: -1 })
+activityLogSchema.index(
+  { userId: 1, createdAt: -1, _id: -1 },
+  { name: "user_created_id" }
+)
+activityLogSchema.index(
+  { userId: 1, target: 1, createdAt: -1, _id: -1 },
+  { name: "user_target_created_id" }
+)
+activityLogSchema.index({ createdAt: -1, _id: -1 }, { name: "created_id" })
+activityLogSchema.index(
+  { role: 1, createdAt: -1, _id: -1 },
+  { name: "role_created_id" }
+)
+activityLogSchema.index(
+  { target: 1, createdAt: -1, _id: -1 },
+  { name: "target_created_id" }
+)
 
 const ActivityLog = mongoose.model("ActivityLog", activityLogSchema)
 

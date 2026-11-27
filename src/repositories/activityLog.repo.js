@@ -4,17 +4,12 @@ class ActivityLogRepository {
   static async findSellerActivityLogs(sellerId, filters) {
     const { page, limit, target, search } = filters
 
-    const query = {
-      userId: sellerId
-    }
+    const query = { userId: sellerId }
+    if (target) query.target = target
 
-    if (target) {
-      query.target = target
-    }
-
-    if (search) {
-      const regex = new RegExp(RegExp.escape(search), "i")
-
+    const term = typeof search === "string" ? search.trim() : ""
+    if (term) {
+      const regex = new RegExp(term.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"), "i")
       query.$or = [{ action: regex }, { message: regex }]
     }
 
@@ -26,7 +21,7 @@ class ActivityLogRepository {
         .limit(limit)
         .lean(),
 
-      ActivityLog.countDocuments(query)
+      ActivityLog.countDocuments(query, term ? { limit: 10000 } : undefined)
     ])
 
     return {

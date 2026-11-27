@@ -5,7 +5,6 @@ import ActivityLog from "../models/AcitivtyLog.js"
 
 export default class AdminDashboardRepository {
   static async getActivityLogs(filter = {}, skip = 0, limit = 10) {
-    const escapeRegex = (value) => value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")
     const match = {}
 
     if (typeof filter.role === "string" && filter.role) match.role = filter.role
@@ -18,21 +17,55 @@ export default class AdminDashboardRepository {
       if (filter.dateTo) match.createdAt.$lte = filter.dateTo
     }
 
-    const searchTerm =
-      typeof filter.search === "string" ? filter.search.trim() : ""
+    const term = typeof filter.search === "string" ? filter.search.trim() : ""
 
-    if (searchTerm) {
-      const searchRegex = new RegExp(escapeRegex(searchTerm), "i")
-      const matchingUserIds = await User.distinct("_id", {
-        $or: [{ name: searchRegex }, { email: searchRegex }]
-      })
-
-      match.$or = [
+    if (term) {
+      const searchRegex = new RegExp(
+        term.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"),
+        "i"
+      )
+      const or = [
         { action: searchRegex },
         { target: searchRegex },
-        { message: searchRegex },
-        { userId: { $in: matchingUserIds } }
+        { message: searchRegex }
       ]
+
+      if (term.length >= 2) {
+        const users = await User.aggregate([
+          {
+            $search: {
+              index: "customer_user_search",
+              compound: {
+                should: [
+                  {
+                    autocomplete: {
+                      path: "name",
+                      query: term.slice(0, 15).toLowerCase(),
+                      tokenOrder: "any"
+                    }
+                  },
+                  {
+                    autocomplete: {
+                      path: "email",
+                      query: term.slice(0, 15).toLowerCase(),
+                      tokenOrder: "any"
+                    }
+                  }
+                ],
+                minimumShouldMatch: 1
+              }
+            }
+          },
+          { $limit: 500 },
+          { $project: { _id: 1 } }
+        ])
+
+        if (users.length > 0) {
+          or.push({ userId: { $in: users.map((u) => u._id) } })
+        }
+      }
+
+      match.$or = or
     }
 
     const [logs, total] = await Promise.all([
@@ -46,15 +79,11 @@ export default class AdminDashboardRepository {
             from: User.collection.name,
             localField: "userId",
             foreignField: "_id",
+            pipeline: [{ $project: { name: 1, email: 1, role: 1 } }],
             as: "user"
           }
         },
-        {
-          $unwind: {
-            path: "$user",
-            preserveNullAndEmptyArrays: true
-          }
-        },
+        { $unwind: { path: "$user", preserveNullAndEmptyArrays: true } },
         {
           $project: {
             _id: 1,
@@ -76,7 +105,7 @@ export default class AdminDashboardRepository {
           }
         }
       ]),
-      ActivityLog.countDocuments(match)
+      ActivityLog.countDocuments(match, term ? { limit: 10000 } : undefined)
     ])
 
     return { logs, total }
