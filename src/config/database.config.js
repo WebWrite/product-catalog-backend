@@ -16,3 +16,10 @@ export const connectDB = async () => {
     console.log(ERROR_MESSAGES.DATABASE_CONNECTION_ERROR, err)
   }
 }
+
+export const disconnectDB = async () => {
+  if (mongoose.connection.readyState !== 0) {
+    await mongoose.disconnect()
+    console.log(SUCCESS_MESSAGES.DATABASE_DISCONNECT)
+  }
+}

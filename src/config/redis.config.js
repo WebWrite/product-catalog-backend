@@ -19,4 +19,11 @@ export const connectRedis = async () => {
   }
 }
 
+export const disconnectRedis = async () => {
+  if (redis.isOpen) {
+    await redis.quit()
+    console.log(SUCCESS_MESSAGES.REDIS_DISCONNECT)
+  }
+}
+
 export default redis
